@@ -32,6 +32,11 @@ def health() -> dict[str, str]:
     return {"status": "ok", "service": "ai-girl-companion"}
 
 
+@app.get("/")
+def root() -> dict[str, str]:
+    return health()
+
+
 @app.post("/v1/chat", response_model=ChatResponse)
 def chat(request: ChatRequest) -> ChatResponse:
     safety = evaluate_safety(
