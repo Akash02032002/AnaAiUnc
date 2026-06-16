@@ -53,12 +53,12 @@ fun OnboardingScreen(
             AnaAvatar(emotion = "loving")
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "AI Girl Companion",
+                text = "AnaAI",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Meet Ana, your adult 18+ AI companion.",
+                text = "Meet Ana, your private adult 18+ AI companion.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.72f),
             )
@@ -96,7 +96,7 @@ fun OnboardingScreen(
                     onCheckedChange = { confirmed = it },
                 )
                 Text(
-                    text = "I confirm that I am at least 18 years old and will use this app responsibly.",
+                    text = "I confirm that I am at least 18 years old and this private app is only for my personal use.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -134,4 +134,3 @@ fun OnboardingScreen(
         }
     }
 }
-

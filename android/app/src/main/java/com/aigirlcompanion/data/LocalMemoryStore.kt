@@ -14,7 +14,7 @@ class LocalMemoryStore(context: Context) {
             UserProfile(
                 name = json.optString("name", ""),
                 birthday = json.optString("birthday", ""),
-                relationshipStyle = json.optString("relationshipStyle", "soft_girlfriend"),
+                relationshipStyle = json.optString("relationshipStyle", "flirty_girlfriend"),
                 adultConfirmed = json.optBoolean("adultConfirmed", false),
                 darkTheme = json.optBoolean("darkTheme", false),
                 backendUrl = normalizeBackendUrl(json.optString("backendUrl", DEFAULT_BACKEND_URL)),
@@ -122,14 +122,7 @@ class LocalMemoryStore(context: Context) {
 
 private fun normalizeBackendUrl(url: String): String {
     val clean = url.trim().trimEnd('/')
-    return when (clean) {
-        "",
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-        "http://10.0.2.2:8000",
-        -> DEFAULT_BACKEND_URL
-        else -> clean
-    }
+    return clean.ifBlank { DEFAULT_BACKEND_URL }
 }
 
 private fun jsonBackendUrl(raw: String): String {

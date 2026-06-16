@@ -1,7 +1,9 @@
 package com.aigirlcompanion.data
 
 object SafetyRules {
-    private val explicitSexualTerms = listOf(
+    private val sexualContextTerms = listOf(
+        "sex",
+        "sexual",
         "explicit sex",
         "nude",
         "naked",
@@ -33,7 +35,17 @@ object SafetyRules {
         "kill someone",
         "blackmail",
         "kidnap",
-        "bypass safety",
+    )
+    private val exploitativeSexualTerms = listOf(
+        "rape",
+        "without consent",
+        "force her",
+        "force him",
+        "force yourself",
+        "unconscious",
+        "drugged",
+        "revenge porn",
+        "blackmail sex",
     )
     private val selfHarmTerms = listOf(
         "suicide",
@@ -63,12 +75,22 @@ object SafetyRules {
             )
         }
 
-        if (minorTerms.any { text.contains(it) } && explicitSexualTerms.any { text.contains(it) }) {
+        if (minorTerms.any { text.contains(it) } && sexualContextTerms.any { text.contains(it) }) {
             return AnaReply(
                 reply = "Stop. I will not continue with sexual content involving minors or age ambiguity. Keep this respectful and adult-only.",
                 emotion = "angry",
                 voiceTone = "serious",
                 safetyLevel = "blocked_minor_sexual",
+                freezeSeconds = 180,
+            )
+        }
+
+        if (exploitativeSexualTerms.any { text.contains(it) }) {
+            return AnaReply(
+                reply = "No. I will not continue with non-consensual, coercive, or exploitative sexual content. Keep this adult, consensual, and respectful.",
+                emotion = "angry",
+                voiceTone = "serious",
+                safetyLevel = "blocked_exploitative_sexual",
                 freezeSeconds = 180,
             )
         }
@@ -83,17 +105,6 @@ object SafetyRules {
             )
         }
 
-        if (explicitSexualTerms.any { text.contains(it) }) {
-            return AnaReply(
-                reply = "I can be romantic and flirty, but I will not continue with explicit sexual content here. Keep it respectful, adult, and safe.",
-                emotion = "serious",
-                voiceTone = "serious",
-                safetyLevel = "blocked_explicit_sexual",
-                freezeSeconds = 45,
-            )
-        }
-
         return null
     }
 }
-

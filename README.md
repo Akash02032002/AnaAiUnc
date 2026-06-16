@@ -1,8 +1,8 @@
-# AI Girl Companion MVP
+# AnaAI Private Companion
 
-AI Girl Companion is an Android-first MVP for an adult 18+ companion named Ana. This scaffold starts with the smartest path: build the brain and personality first, then upgrade the avatar/body later.
+AnaAI is a private Android-first adult 18+ AI companion app customized for personal use. Ana is tuned as a flirty, romantic, intimate AI companion with local memory and an optional live AI backend.
 
-## MVP Features
+## Features
 
 - Android app in Kotlin + Jetpack Compose
 - Guest mode, no login required
@@ -11,10 +11,10 @@ AI Girl Companion is an Android-first MVP for an adult 18+ companion named Ana. 
 - Basic voice mode using Android speech recognition and device text-to-speech
 - Local memory: name, birthday, likes, hobbies, important events, relationship preferences, emotional state
 - User can view and delete memories
-- Relationship styles: soft girlfriend, flirty girlfriend, caring wife-like, playful best friend
+- Relationship styles: soft girlfriend, flirty girlfriend, caring wife-like, playful best friend, all tuned for private adult use
 - Backend API in FastAPI
-- OpenAI-ready backend with safe fallback if no API key is configured
-- Adult safety rules: romance/flirting allowed, explicit sexual content blocked in MVP
+- OpenAI-ready backend with local fallback if no API key is configured
+- Private adult mode: consensual 18+ romance, flirting, and intimacy allowed; minors, coercion, exploitation, illegal harm, and self-harm emergencies stay protected
 
 ## Project Structure
 
@@ -63,4 +63,4 @@ http://192.168.1.10:8000
 
 ## Current Scope
 
-This is a real MVP foundation, not the final 3D version. Unity full-body avatar, Firebase Auth, subscriptions, cloud memory, and pgvector/Supabase are planned as later phases.
+This is a personal private build foundation. Unity full-body avatar, stronger memory search, and richer voice/avatar upgrades can be added later without preparing the app for public store release.

@@ -14,7 +14,7 @@ class Settings:
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
     openai_base_url: str = os.getenv("OPENAI_BASE_URL", "")
     app_site_url: str = os.getenv("APP_SITE_URL", "http://localhost")
-    app_title: str = os.getenv("APP_TITLE", "AI Girl Companion")
+    app_title: str = os.getenv("APP_TITLE", "AnaAI")
     tts_voice: str = os.getenv("TTS_VOICE", "en-IN-NeerjaNeural")
 
     @property

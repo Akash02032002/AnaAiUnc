@@ -51,7 +51,7 @@ fun SettingsScreen(
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Safety, backend, theme, and local data.",
+                text = "Private mode, backend, theme, and local data.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.65f),
             )
@@ -87,16 +87,16 @@ fun SettingsScreen(
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            SettingPanel(title = "Safety Rules") {
+            SettingPanel(title = "Private Adult Mode") {
                 Text(
-                    text = "Romance and flirting are allowed. Explicit sexual content, minor-related sexual content, illegal instructions, exploitation, and harmful requests are blocked. Unsafe chats may pause Ana temporarily.",
+                    text = "Ana is tuned for private 18+ romance, flirting, and consensual adult intimacy. Minor-related sexual content, non-consensual or exploitative content, illegal instructions, and harmful requests stay blocked.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
             SettingPanel(title = "Local Data") {
                 Text(
-                    text = "This MVP stores profile, chat, and memory on this device. Live AI messages are sent to your backend when it is reachable.",
+                    text = "This private build stores profile, chat, and memory on this device. Live AI messages are sent to your backend when it is reachable.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
@@ -132,4 +132,3 @@ private fun SettingPanel(
         }
     }
 }
-

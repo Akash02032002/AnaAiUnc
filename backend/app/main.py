@@ -16,7 +16,7 @@ class TtsRequest(BaseModel):
     voice: str = ""
 
 
-app = FastAPI(title="AI Girl Companion API", version="0.1.0")
+app = FastAPI(title="AnaAI Private Companion API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,6 +1,6 @@
-# AI Girl Companion Backend
+# AnaAI Backend
 
-FastAPI backend for Ana's MVP brain, safety, personality, and OpenAI integration.
+FastAPI backend for AnaAI's private adult 18+ companion brain, personality, memory extraction, voice, and OpenAI integration.
 
 ## Setup
 
@@ -21,7 +21,7 @@ OPENAI_API_KEY=your_key_here
 OPENAI_MODEL=openai/gpt-oss-120b:free
 ```
 
-If `OPENAI_API_KEY` is missing, the backend uses a safe local fallback reply engine for development.
+If `OPENAI_API_KEY` is missing, the backend uses a local fallback reply engine for development.
 
 ## OpenRouter
 
@@ -32,7 +32,7 @@ OPENAI_API_KEY=your_openrouter_key_here
 OPENAI_BASE_URL=https://openrouter.ai/api/v1
 OPENAI_MODEL=openai/gpt-oss-120b:free
 APP_SITE_URL=http://localhost
-APP_TITLE=AI Girl Companion
+APP_TITLE=AnaAI
 ```
 
 If the key starts with `sk-or-`, the backend automatically uses OpenRouter's base URL. If `OPENAI_MODEL=GPT-OSS-120B`, it is normalized to `openai/gpt-oss-120b`.

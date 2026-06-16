@@ -1,6 +1,6 @@
 # Phase By Phase Development Roadmap
 
-## Phase 1: MVP Brain And Chat
+## Phase 1: Private Brain And Chat
 
 Goal: make Ana feel emotionally consistent through text.
 
@@ -69,7 +69,7 @@ Recommended Android tools:
 - WorkManager for local schedules
 - Firebase Cloud Messaging later for server-driven messages
 
-## Phase 5: Anime Avatar MVP
+## Phase 5: Anime Avatar
 
 Goal: give Ana a visible identity before full 3D.
 
@@ -108,7 +108,7 @@ Recommended tools:
 
 ## Phase 7: Production Backend
 
-Goal: move from local guest MVP to scalable service.
+Goal: move from local guest private mode to a more capable personal service.
 
 Deliverables:
 
@@ -121,20 +121,16 @@ Deliverables:
 - API key protection
 - Logs without sensitive message storage by default
 
-## Phase 8: Launch Readiness
+## Phase 8: Private Build Polish
 
-Goal: prepare for Play Store.
+Goal: polish the private build without preparing it for public app store release.
 
 Deliverables:
 
-- Privacy policy
-- Terms of service
-- Data safety form
+- Clear private-use notes
+- Local data deletion
+- Backend privacy notes
 - Age gate
-- Content policy
-- Data deletion
-- Abuse reporting
+- Adult boundary notes
 - Crash reporting
-- Store screenshots
-- Subscription/payment system
-
+- Personal backup/export tools

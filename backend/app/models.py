@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 class UserProfile(BaseModel):
     name: str = "Friend"
     birthday: str = ""
-    relationship_style: str = "soft_girlfriend"
+    relationship_style: str = "flirty_girlfriend"
     language_style: str = "Hinglish + English"
     adult_confirmed: bool = False
 
@@ -41,4 +41,3 @@ class ChatResponse(BaseModel):
     safety_level: str = "ok"
     freeze_seconds: int = 0
     memory_candidates: list[MemoryCandidate] = Field(default_factory=list)
-

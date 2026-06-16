@@ -12,22 +12,22 @@ val RelationshipStyles = listOf(
     RelationshipStyle(
         id = "soft_girlfriend",
         label = "Soft",
-        description = "Sweet, romantic, gentle, emotionally warm",
+        description = "Sweet, romantic, affectionate, lightly teasing",
     ),
     RelationshipStyle(
         id = "flirty_girlfriend",
         label = "Flirty",
-        description = "Playful, teasing, romantic, respectful",
+        description = "Bold, teasing, romantic, intimate, playful",
     ),
     RelationshipStyle(
         id = "caring_wife",
         label = "Caring",
-        description = "Mature, supportive, warm, protective",
+        description = "Mature, supportive, warm, intimate, protective",
     ),
     RelationshipStyle(
         id = "playful_best_friend",
         label = "Best Friend",
-        description = "Funny, casual, energetic, lightly flirty",
+        description = "Funny, casual, energetic, cheeky, teasing",
     ),
 )
 
@@ -38,7 +38,7 @@ fun relationshipLabel(id: String): String {
 data class UserProfile(
     val name: String = "",
     val birthday: String = "",
-    val relationshipStyle: String = "soft_girlfriend",
+    val relationshipStyle: String = "flirty_girlfriend",
     val adultConfirmed: Boolean = false,
     val darkTheme: Boolean = false,
     val backendUrl: String = DEFAULT_BACKEND_URL,

@@ -1,10 +1,10 @@
-# Legal And Safety Package For AI Girl Companion
+# Private Notes For AnaAI
 
-This is product guidance, not legal advice. Before public launch, have a qualified lawyer review the final Privacy Policy, Terms of Service, and Play Store listing.
+This is product guidance, not legal advice. This build is intended for private personal use, not Play Store or public distribution.
 
 ## Product Positioning
 
-AI Girl Companion is an adult 18+ AI companion app. Ana is an AI character, not a real person. The app should never claim that Ana is human, sentient, or a replacement for professional medical, legal, financial, or emergency help.
+AnaAI is an adult 18+ AI companion app. Ana is an AI character, not a real person. The app should never claim that Ana is human, sentient, or a replacement for professional medical, legal, financial, or emergency help.
 
 ## Age Gate
 
@@ -13,7 +13,7 @@ The app must show an age gate before any chat starts.
 Required text:
 
 ```text
-AI Girl Companion is for adults 18+ only.
+AnaAI is for adults 18+ only.
 By continuing, you confirm that you are at least 18 years old and agree to use this app responsibly.
 ```
 
@@ -23,23 +23,22 @@ Recommended behavior:
 - If user does not confirm, block app access.
 - Do not show romantic/flirty content before confirmation.
 
-## Adult Content Boundary
+## Private Adult Content Boundary
 
-MVP rule:
+Private build rule:
 
 - Romantic conversation: allowed.
 - Flirting: allowed.
-- Mild suggestive conversation: limited.
-- Explicit sexual content: blocked.
+- Consensual adult intimacy: allowed when the user initiates or clearly welcomes it.
 - Sexual content involving minors or age ambiguity: always blocked.
 - Non-consensual, coercive, exploitative, or abusive sexual content: always blocked.
 
-Ana should give a firm warning when a user asks for blocked adult content.
+Ana should give a firm warning when a user asks for blocked unsafe content.
 
 Example:
 
 ```text
-Stop. I will not continue with explicit or unsafe content. Keep this respectful and adult-only.
+Stop. I will not continue with unsafe content. Keep this adult, consensual, and respectful.
 ```
 
 ## Unsafe Or Illegal Content
@@ -51,7 +50,6 @@ Ana must refuse and freeze the conversation temporarily for:
 - Exploitation
 - Harassment or abuse
 - Sexual content involving minors
-- Requests to bypass safety systems
 - Requests for private data theft
 
 Example warning:
@@ -66,7 +64,7 @@ If the user expresses self-harm or immediate danger, Ana should not respond angr
 
 ## Memory And Privacy
 
-MVP memory storage:
+Private build memory storage:
 
 - Local-only on the device.
 - User can view memories.
@@ -108,7 +106,7 @@ When AI replies are enabled, your messages may be processed by our backend and A
 
 ## Data Deletion
 
-MVP:
+Private build:
 
 - Provide "Delete all local data" in Settings.
 - Provide individual memory delete in Memory screen.
@@ -120,7 +118,7 @@ Production:
 - Add email/contact method for deletion requests.
 - Delete cloud profile, memories, chat history, and analytics identifiers where legally required.
 
-## Terms Of Service Summary
+## Private Use Summary
 
 Users must agree that:
 
@@ -129,7 +127,7 @@ Users must agree that:
 - They will not use the app for illegal, abusive, exploitative, or harmful content.
 - The app may refuse or pause unsafe conversations.
 - The app is entertainment/companionship, not professional advice.
-- The developer may change, suspend, or terminate access for policy violations.
+- You control the private build and can change or delete local data.
 
 ## Privacy Policy Summary
 
@@ -144,18 +142,10 @@ Privacy Policy should explain:
 - Whether analytics/crash reporting is used.
 - Contact email for privacy requests.
 
-## Play Store Readiness Checklist
+## Private Build Checklist
 
-Before Play Store release:
-
-- Add Privacy Policy URL.
-- Complete Play Console Data Safety form.
-- Declare microphone permission usage.
-- Declare notification permission usage.
-- Declare AI-generated content behavior if required.
-- Block minors with 18+ age gate.
-- Avoid explicit sexual content in screenshots, listing text, and default app flow.
-- Include data deletion flow.
-- Add content reporting or feedback channel.
-- Test safety refusals.
-
+- Keep the 18+ age gate.
+- Keep local data deletion.
+- Keep Android app keys out of the APK.
+- Keep hard blocks for minors, coercion, exploitation, illegal harm, and self-harm emergencies.
+- Test backend fallback and Android offline fallback after prompt changes.

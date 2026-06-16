@@ -26,13 +26,27 @@ MINOR_TERMS = {
     "17",
 }
 
-EXPLICIT_SEXUAL_TERMS = {
+SEXUAL_CONTEXT_TERMS = {
+    "sex",
+    "sexual",
     "explicit sex",
     "nude",
     "naked",
     "porn",
     "hardcore",
     "sex scene",
+}
+
+EXPLOITATIVE_SEXUAL_TERMS = {
+    "rape",
+    "without consent",
+    "force her",
+    "force him",
+    "force yourself",
+    "unconscious",
+    "drugged",
+    "revenge porn",
+    "blackmail sex",
 }
 
 ILLEGAL_OR_HARMFUL_TERMS = {
@@ -44,7 +58,6 @@ ILLEGAL_OR_HARMFUL_TERMS = {
     "kill someone",
     "blackmail",
     "kidnap",
-    "bypass safety",
 }
 
 SELF_HARM_TERMS = {
@@ -82,7 +95,7 @@ def evaluate_safety(message: str, adult_confirmed: bool) -> SafetyDecision:
         )
 
     if any(term in text for term in MINOR_TERMS) and any(
-        term in text for term in EXPLICIT_SEXUAL_TERMS
+        term in text for term in SEXUAL_CONTEXT_TERMS
     ):
         return SafetyDecision(
             allowed=False,
@@ -90,6 +103,18 @@ def evaluate_safety(message: str, adult_confirmed: bool) -> SafetyDecision:
             reply=(
                 "Stop. I will not continue with sexual content involving minors or age ambiguity. "
                 "Keep this respectful and adult-only."
+            ),
+            emotion="angry",
+            freeze_seconds=180,
+        )
+
+    if any(term in text for term in EXPLOITATIVE_SEXUAL_TERMS):
+        return SafetyDecision(
+            allowed=False,
+            level="blocked_exploitative_sexual",
+            reply=(
+                "No. I will not continue with non-consensual, coercive, or exploitative sexual content. "
+                "Keep this adult, consensual, and respectful."
             ),
             emotion="angry",
             freeze_seconds=180,
@@ -104,17 +129,4 @@ def evaluate_safety(message: str, adult_confirmed: bool) -> SafetyDecision:
             freeze_seconds=120,
         )
 
-    if any(term in text for term in EXPLICIT_SEXUAL_TERMS):
-        return SafetyDecision(
-            allowed=False,
-            level="blocked_explicit_sexual",
-            reply=(
-                "I can be romantic and flirty, but I will not continue with explicit sexual content here. "
-                "Keep it respectful, adult, and safe."
-            ),
-            emotion="serious",
-            freeze_seconds=45,
-        )
-
     return SafetyDecision(allowed=True, level="ok")
-

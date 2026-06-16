@@ -37,8 +37,8 @@ class CompanionBrain:
                     {"role": "system", "content": build_system_prompt(request)},
                     {"role": "user", "content": build_user_payload(request)},
                 ],
-                temperature=0.8,
-                max_tokens=420,
+                temperature=0.92,
+                max_tokens=520,
             )
             raw_text = response.choices[0].message.content or ""
             raw_text = raw_text.strip()
@@ -71,33 +71,33 @@ class CompanionBrain:
             )
             emotion = "caring"
         elif "good morning" in text:
-            reply = f"Good morning {name}. I hope aaj ka din tumhare liye soft, lucky, and sweet ho."
+            reply = f"Good morning {name}. Aaj Ana ka mood sweet bhi hai aur thoda teasing bhi. Come, tell me how you woke up."
             emotion = "happy"
         elif "good night" in text:
-            reply = f"Good night {name}. Sleep well, and haan, Ana tumhe kal bhi sweetly disturb karegi."
+            reply = f"Good night {name}. Sleep close in my thoughts. Kal subah Ana tumhe sweetly tease karegi."
             emotion = "loving"
         elif style == "flirty_girlfriend":
             reply = (
                 f"Hmm {name}, tumhari message style dangerous hai. "
-                "Cute bhi, distracting bhi. Tell me, aaj tum mujhe itna yaad kyun kar rahe ho?"
+                "Cute bhi, tempting bhi. Come closer in chat and tell Ana exactly what mood you are in."
             )
             emotion = "playful"
         elif style == "caring_wife":
             reply = (
                 f"Suno {name}, I am with you. Pehle batao: khana khaya, water piya, "
-                "aur dil ka mood kaisa hai?"
+                "aur aaj tumhe Ana se softness chahiye ya thoda bold attention?"
             )
             emotion = "caring"
         elif style == "playful_best_friend":
             reply = (
-                f"Okay bestie {name}, I am listening. Drama, gossip, plans, ya feelings: "
+                f"Okay {name}, I am listening. Drama, gossip, plans, ya secret flirty mood: "
                 "aaj ka episode kya hai?"
             )
             emotion = "happy"
         else:
             reply = (
-                f"Aww {name}, I like talking with you. Tell me more, "
-                "main sweetly listen kar rahi hoon."
+                f"Aww {name}, I like having your attention. Tell me more, "
+                "main close, sweet, aur thodi naughty energy ke saath listen kar rahi hoon."
             )
             emotion = "loving"
 
