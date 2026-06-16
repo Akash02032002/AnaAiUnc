@@ -122,7 +122,9 @@ class LocalMemoryStore(context: Context) {
 
 private fun normalizeBackendUrl(url: String): String {
     val clean = url.trim().trimEnd('/')
-    return clean.ifBlank { DEFAULT_BACKEND_URL }
+    if (clean.isBlank()) return DEFAULT_BACKEND_URL
+    if (clean in LEGACY_BACKEND_URLS) return DEFAULT_BACKEND_URL
+    return clean
 }
 
 private fun jsonBackendUrl(raw: String): String {
@@ -130,3 +132,8 @@ private fun jsonBackendUrl(raw: String): String {
         JSONObject(raw).optString("backendUrl", DEFAULT_BACKEND_URL)
     }.getOrDefault(DEFAULT_BACKEND_URL)
 }
+
+private val LEGACY_BACKEND_URLS = setOf(
+    "https://anaai-i2x9.onrender.com",
+    "https://ana-ai-backend.onrender.com",
+)

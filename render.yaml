@@ -16,7 +16,7 @@ services:
       - key: OPENAI_BASE_URL
         value: https://openrouter.ai/api/v1
       - key: APP_SITE_URL
-        value: https://ana-ai-backend.onrender.com
+        value: https://anaaiunc.onrender.com
       - key: APP_TITLE
         value: AnaAI
       - key: TTS_VOICE

@@ -44,7 +44,7 @@ data class UserProfile(
     val backendUrl: String = DEFAULT_BACKEND_URL,
 )
 
-const val DEFAULT_BACKEND_URL = "https://anaai-i2x9.onrender.com"
+const val DEFAULT_BACKEND_URL = "https://anaaiunc.onrender.com/"
 
 data class ChatMessage(
     val id: String = UUID.randomUUID().toString(),
