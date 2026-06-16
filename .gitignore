@@ -1,0 +1,17 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+*.apk
+*.aab
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.env
+*.log
+/mobile-*.png
+/test-*.png
+/backend/ana-voice-test.mp3

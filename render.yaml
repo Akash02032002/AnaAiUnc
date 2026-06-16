@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ana-ai-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: OPENAI_MODEL
+        value: openai/gpt-oss-120b:free
+      - key: OPENAI_BASE_URL
+        value: https://openrouter.ai/api/v1
+      - key: APP_SITE_URL
+        value: https://ana-ai-backend.onrender.com
+      - key: APP_TITLE
+        value: AI Girl Companion
+      - key: TTS_VOICE
+        value: en-IN-NeerjaNeural
+      - key: OPENAI_API_KEY
+        sync: false
