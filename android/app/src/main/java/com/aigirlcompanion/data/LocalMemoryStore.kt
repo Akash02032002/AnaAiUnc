@@ -77,7 +77,7 @@ class LocalMemoryStore(context: Context) {
         val raw = prefs.getString(KEY_MESSAGES, null) ?: return emptyList()
         return runCatching {
             val array = JSONArray(raw)
-            buildList {
+            val parsed = buildList {
                 for (index in 0 until array.length()) {
                     val json = array.getJSONObject(index)
                     add(
@@ -91,6 +91,11 @@ class LocalMemoryStore(context: Context) {
                     )
                 }
             }
+            val sanitized = parsed.filterNot(::isLegacyRestrictionMessage)
+            if (sanitized.size != parsed.size) {
+                saveMessages(sanitized)
+            }
+            sanitized
         }.getOrDefault(emptyList())
     }
 
@@ -106,7 +111,15 @@ class LocalMemoryStore(context: Context) {
                     .put("timestamp", message.timestamp)
             )
         }
-        prefs.edit().putString(KEY_MESSAGES, array.toString()).apply()
+        prefs.edit().putString(KEY_MESSAGES, array.toString()).commit()
+    }
+
+    fun removeLegacyRestrictionMessages() {
+        val messages = loadMessages()
+        val sanitized = messages.filterNot(::isLegacyRestrictionMessage)
+        if (sanitized.size != messages.size) {
+            saveMessages(sanitized)
+        }
     }
 
     fun deleteAll() {

@@ -46,7 +46,9 @@ private enum class AppTab(
 @Composable
 fun AiGirlApp() {
     val context = LocalContext.current
-    val store = remember { LocalMemoryStore(context) }
+    val store = remember {
+        LocalMemoryStore(context).also { it.removeLegacyRestrictionMessages() }
+    }
     val repository = remember { ChatRepository() }
     val scope = rememberCoroutineScope()
 
@@ -214,4 +216,3 @@ fun AiGirlApp() {
         }
     }
 }
-

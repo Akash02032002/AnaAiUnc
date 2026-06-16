@@ -31,11 +31,11 @@ class ChatRepository {
         outputFile: File,
     ): Boolean = withContext(Dispatchers.IO) {
         runCatching {
-            val endpoint = profile.backendUrl.trimEnd('/') + "/v1/tts"
-            val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                connectTimeout = 12_000
-                readTimeout = 30_000
+        val endpoint = profile.backendUrl.trimEnd('/') + "/v1/tts"
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 20_000
+            readTimeout = 90_000
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("Accept", "audio/mpeg")
@@ -74,8 +74,8 @@ class ChatRepository {
         val endpoint = profile.backendUrl.trimEnd('/') + "/v1/chat"
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
-            connectTimeout = 12_000
-            readTimeout = 25_000
+            connectTimeout = 20_000
+            readTimeout = 90_000
             doOutput = true
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
@@ -120,13 +120,16 @@ class ChatRepository {
             .put("adult_confirmed", profile.adultConfirmed)
 
         val messagesJson = JSONArray()
-        recentMessages.takeLast(12).forEach { chat ->
-            messagesJson.put(
-                JSONObject()
-                    .put("role", chat.role)
-                    .put("content", chat.content)
-            )
-        }
+        recentMessages
+            .filterNot(::isLegacyRestrictionMessage)
+            .takeLast(12)
+            .forEach { chat ->
+                messagesJson.put(
+                    JSONObject()
+                        .put("role", chat.role)
+                        .put("content", chat.content)
+                )
+            }
 
         val memoriesJson = JSONArray()
         memories.take(30).forEach { memory ->
