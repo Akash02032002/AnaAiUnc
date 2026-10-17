@@ -12,9 +12,9 @@ services:
       - key: APP_ENV
         value: production
       - key: OPENAI_MODEL
-        value: openai/gpt-oss-120b:free
+        value: deepseek-ai/DeepSeek-V4.1-Flash
       - key: OPENAI_BASE_URL
-        value: https://openrouter.ai/api/v1
+        value: https://api.river.ai/v1
       - key: APP_SITE_URL
         value: https://anaaiunc.onrender.com
       - key: APP_TITLE
