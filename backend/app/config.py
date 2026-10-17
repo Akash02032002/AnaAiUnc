@@ -22,11 +22,17 @@ class Settings:
         return self.openai_base_url.startswith("https://openrouter.ai") or self.openai_api_key.startswith("sk-or-")
 
     @property
+    def is_river(self) -> bool:
+        return self.openai_base_url.startswith("https://api.river.ai") or self.openai_api_key.startswith("rv_")
+
+    @property
     def resolved_base_url(self) -> str:
         if self.openai_base_url:
             return self.openai_base_url
         if self.openai_api_key.startswith("sk-or-"):
             return "https://openrouter.ai/api/v1"
+        if self.openai_api_key.startswith("rv_"):
+            return "https://api.river.ai/v1"
         return ""
 
     @property
@@ -34,6 +40,8 @@ class Settings:
         model = self.openai_model.strip()
         if self.is_openrouter and model.upper() == "GPT-OSS-120B":
             return "openai/gpt-oss-120b"
+        if self.is_river and (not model or model == "gpt-4.1-mini"):
+            return "deepseek-ai/DeepSeek-V4.1-Flash"
         return model
 
 

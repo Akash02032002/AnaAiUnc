@@ -23,6 +23,21 @@ OPENAI_MODEL=openai/gpt-oss-120b:free
 
 If `OPENAI_API_KEY` is missing, the backend uses a local fallback reply engine for development.
 
+## River AI (console.river.ai)
+
+To use River AI models:
+
+```text
+OPENAI_API_KEY=rv_...
+OPENAI_BASE_URL=https://api.river.ai/v1
+OPENAI_MODEL=deepseek-ai/DeepSeek-V4.1-Flash
+```
+
+Available models on River AI:
+- `deepseek-ai/DeepSeek-V4.1-Flash`
+- `nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4`
+- `zai-org/GLM-5.3-Flash`
+
 ## OpenRouter
 
 OpenRouter keys are also supported. Use:

@@ -50,7 +50,9 @@ class CompanionBrain:
                 safety_level="ok",
                 memory_candidates=self._parse_memories(data.get("memory_candidates", [])),
             )
-        except Exception:
+        except Exception as exc:
+            import logging
+            logging.getLogger("CompanionBrain").warning("AI completion failed: %s, falling back to local engine", exc)
             return self._fallback(request)
 
     def _fallback(self, request: ChatRequest) -> ChatResponse:
