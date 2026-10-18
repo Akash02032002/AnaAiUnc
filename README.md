@@ -2,6 +2,10 @@
 
 AnaAI is a private Android-first adult 18+ AI companion app customized for personal use. Ana is tuned as a flirty, romantic, intimate AI companion with local memory and an optional live AI backend.
 
+Render Link: ( https://dashboard.render.com/web/srv-d8orim6rnols73esqdhg )
+
+Backend Link : ( https://anaaiunc.onrender.com )
+
 ## Features
 
 - Android app in Kotlin + Jetpack Compose
