@@ -134,6 +134,12 @@ fun AiGirlApp() {
         }
     }
 
+    fun deleteChatMessage(messageId: String) {
+        val updated = messages.filterNot { it.id == messageId }
+        messages = updated
+        store.saveMessages(updated)
+    }
+
     fun sendDocumentMessage(
         filename: String,
         fileBytes: ByteArray,
@@ -198,6 +204,7 @@ fun AiGirlApp() {
                     lastEmotion = lastEmotion,
                     onSend = ::sendUserMessage,
                     onSendDocument = ::sendDocumentMessage,
+                    onDeleteMessage = ::deleteChatMessage,
                 )
 
                 AppTab.Voice -> VoiceScreen(

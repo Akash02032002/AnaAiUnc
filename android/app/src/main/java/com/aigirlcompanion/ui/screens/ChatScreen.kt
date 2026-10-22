@@ -73,6 +73,7 @@ fun ChatScreen(
     lastEmotion: String,
     onSend: (String, (String) -> Unit) -> Unit,
     onSendDocument: (String, ByteArray, String, (String) -> Unit) -> Unit = { _, _, _, _ -> },
+    onDeleteMessage: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -319,6 +320,12 @@ fun ChatScreen(
                             }
                         }
                     } else null,
+                    onDelete = {
+                        if (isThisMessagePlaying) {
+                            stopVoice()
+                        }
+                        onDeleteMessage(message.id)
+                    },
                 )
             }
             item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -547,6 +554,7 @@ private fun ChatBubble(
     message: ChatMessage,
     isPlaying: Boolean = false,
     onTogglePlay: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
 ) {
     val isUser = message.role == "user"
     Row(
@@ -570,13 +578,13 @@ private fun ChatBubble(
                     color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.bodyMedium,
                 )
-                if (!isUser && onTogglePlay != null) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (!isUser && onTogglePlay != null) {
                         IconButton(
                             onClick = onTogglePlay,
                             modifier = Modifier.size(24.dp),
@@ -586,6 +594,19 @@ private fun ChatBubble(
                                 contentDescription = if (isPlaying) "Stop voice" else "Play voice",
                                 modifier = Modifier.size(16.dp),
                                 tint = if (isPlaying) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    if (onDelete != null) {
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.size(24.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_delete),
+                                contentDescription = "Delete chat",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isUser) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f) else MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
                             )
                         }
                     }
