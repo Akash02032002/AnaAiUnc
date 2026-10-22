@@ -81,13 +81,13 @@ fun SettingsScreen(
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Button(
                         onClick = { onProfileChange(profile.copy(backendUrl = backendUrl.trim())) },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Save URL")
+                        Text("Save")
                     }
                     OutlinedButton(
                         onClick = {
@@ -96,7 +96,17 @@ fun SettingsScreen(
                         },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Reset to Cloud")
+                        Text("Cloud")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            val localUrl = "http://127.0.0.1:8000"
+                            backendUrl = localUrl
+                            onProfileChange(profile.copy(backendUrl = localUrl))
+                        },
+                        modifier = Modifier.weight(1.2f),
+                    ) {
+                        Text("USB Local")
                     }
                 }
             }

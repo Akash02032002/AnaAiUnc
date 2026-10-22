@@ -147,7 +147,6 @@ private fun jsonBackendUrl(raw: String): String {
 }
 
 private val LEGACY_BACKEND_URLS = setOf(
-    "https://anaaiunc.onrender.com",
     "https://anaai-i2x9.onrender.com",
     "https://ana-ai-backend.onrender.com",
     "http://localhost:8000",
