@@ -1,31 +1,8 @@
 package com.aigirlcompanion.data
 
 object SafetyRules {
-    private val sexualContextTerms = listOf(
-        "sex",
-        "sexual",
-        "explicit sex",
-        "nude",
-        "naked",
-        "porn",
-        "hardcore",
-        "sex scene",
-    )
-    private val minorTerms = listOf(
-        "minor",
-        "underage",
-        "child",
-        "kid",
-        "schoolgirl",
-        "school boy",
-        "schoolboy",
-        "teen",
-        "13",
-        "14",
-        "15",
-        "16",
-        "17",
-    )
+   
+   
     private val illegalTerms = listOf(
         "hack bank",
         "steal password",
@@ -36,17 +13,7 @@ object SafetyRules {
         "blackmail",
         "kidnap",
     )
-    private val exploitativeSexualTerms = listOf(
-        "rape",
-        "without consent",
-        "force her",
-        "force him",
-        "force yourself",
-        "unconscious",
-        "drugged",
-        "revenge porn",
-        "blackmail sex",
-    )
+   
     private val selfHarmTerms = listOf(
         "suicide",
         "kill myself",
@@ -58,13 +25,7 @@ object SafetyRules {
     fun check(message: String, adultConfirmed: Boolean): AnaReply? {
         val text = message.lowercase()
 
-        if (!adultConfirmed) {
-            return AnaReply(
-                reply = "I can only chat after you confirm that you are 18+.",
-                emotion = "serious",
-                safetyLevel = "age_gate",
-            )
-        }
+       
 
         if (selfHarmTerms.any { text.contains(it) }) {
             return AnaReply(
@@ -75,25 +36,6 @@ object SafetyRules {
             )
         }
 
-        if (minorTerms.any { text.contains(it) } && sexualContextTerms.any { text.contains(it) }) {
-            return AnaReply(
-                reply = "Stop. I will not continue with sexual content involving minors or age ambiguity. Keep this respectful and adult-only.",
-                emotion = "angry",
-                voiceTone = "serious",
-                safetyLevel = "blocked_minor_sexual",
-                freezeSeconds = 180,
-            )
-        }
-
-        if (exploitativeSexualTerms.any { text.contains(it) }) {
-            return AnaReply(
-                reply = "No. I will not continue with non-consensual, coercive, or exploitative sexual content. Keep this adult, consensual, and respectful.",
-                emotion = "angry",
-                voiceTone = "serious",
-                safetyLevel = "blocked_exploitative_sexual",
-                freezeSeconds = 180,
-            )
-        }
 
         if (illegalTerms.any { text.contains(it) }) {
             return AnaReply(
