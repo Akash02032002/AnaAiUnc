@@ -22,4 +22,4 @@ services:
       - key: TTS_VOICE
         value: hi-IN-SwaraNeural
       - key: OPENAI_API_KEY
-        sync: false
+        value: rv__zE5tFENYbHQkVEFRG-IZw45tiHwkS0MJpem3a3WAJQ

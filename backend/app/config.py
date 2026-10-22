@@ -12,12 +12,14 @@ if _env_path.exists():
 load_dotenv()
 
 
+DEFAULT_RIVER_KEY = "rv__zE5tFENYbHQkVEFRG-IZw45tiHwkS0MJpem3a3WAJQ"
+
 @dataclass(frozen=True)
 class Settings:
     app_env: str = os.getenv("APP_ENV", "development")
-    openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
-    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-    openai_base_url: str = os.getenv("OPENAI_BASE_URL", "")
+    openai_api_key: str = os.getenv("OPENAI_API_KEY", "").strip() or DEFAULT_RIVER_KEY
+    openai_model: str = os.getenv("OPENAI_MODEL", "deepseek-ai/DeepSeek-V4.1-Flash-1017")
+    openai_base_url: str = os.getenv("OPENAI_BASE_URL", "https://api.river.ai/v1")
     app_site_url: str = os.getenv("APP_SITE_URL", "http://localhost")
     app_title: str = os.getenv("APP_TITLE", "AnaAI")
     tts_voice: str = os.getenv("TTS_VOICE", "hi-IN-SwaraNeural")
