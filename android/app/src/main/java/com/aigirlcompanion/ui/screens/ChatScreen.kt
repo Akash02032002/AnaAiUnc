@@ -8,6 +8,8 @@ import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
 import android.widget.Toast
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -70,6 +72,7 @@ fun ChatScreen(
     sending: Boolean,
     lastEmotion: String,
     onSend: (String, (String) -> Unit) -> Unit,
+    onSendDocument: (String, ByteArray, String, (String) -> Unit) -> Unit = { _, _, _, _ -> },
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -238,6 +241,39 @@ fun ChatScreen(
         }
     }
 
+    val documentPickerLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                var fileName: String? = null
+                if (uri.scheme == "content") {
+                    val cursor = context.contentResolver.query(uri, null, null, null, null)
+                    cursor?.use {
+                        if (it.moveToFirst()) {
+                            val idx = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                            if (idx != -1) fileName = it.getString(idx)
+                        }
+                    }
+                }
+                val resolvedName = fileName ?: (uri.lastPathSegment ?: "document.pdf")
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                if (bytes != null && bytes.isNotEmpty()) {
+                    val promptText = input.trim()
+                    input = ""
+                    onSendDocument(resolvedName, bytes, promptText) { reply ->
+                        speakReply(reply)
+                    }
+                } else {
+                    Toast.makeText(context, "Could not read file", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Error reading file: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
     val voiceActive = isPlayingVoice || isVoicePending
 
     LaunchedEffect(messages.size) {
@@ -336,6 +372,23 @@ fun ChatScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            // Attach Document Button
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                IconButton(
+                    onClick = { documentPickerLauncher.launch("*/*") },
+                    enabled = !sending,
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_attach),
+                        contentDescription = "Attach Document",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+
             OutlinedTextField(
                 value = input,
                 onValueChange = { input = it },

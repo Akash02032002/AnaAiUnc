@@ -134,6 +134,32 @@ fun AiGirlApp() {
         }
     }
 
+    fun sendDocumentMessage(
+        filename: String,
+        fileBytes: ByteArray,
+        prompt: String = "",
+        speak: (String) -> Unit = {},
+    ) {
+        if (sending) return
+        val displayPrompt = if (prompt.isNotBlank()) " — $prompt" else ""
+        val userMessage = ChatMessage(role = "user", content = "[Document: $filename$displayPrompt]")
+        val withUser = messages + userMessage
+        messages = withUser
+        store.saveMessages(withUser)
+
+        scope.launch {
+            sending = true
+            val reply = repository.uploadDocument(
+                profile = profile,
+                filename = filename,
+                fileBytes = fileBytes,
+                prompt = prompt,
+            )
+            appendAssistant(reply, speak)
+            sending = false
+        }
+    }
+
     AIGirlTheme(darkTheme = profile.darkTheme) {
         if (!profile.adultConfirmed) {
             OnboardingScreen(
@@ -171,6 +197,7 @@ fun AiGirlApp() {
                     sending = sending,
                     lastEmotion = lastEmotion,
                     onSend = ::sendUserMessage,
+                    onSendDocument = ::sendDocumentMessage,
                 )
 
                 AppTab.Voice -> VoiceScreen(

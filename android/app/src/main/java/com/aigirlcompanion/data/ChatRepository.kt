@@ -27,21 +27,40 @@ class ChatRepository {
         }
     }
 
+    suspend fun uploadDocument(
+        profile: UserProfile,
+        filename: String,
+        fileBytes: ByteArray,
+        prompt: String = "",
+    ): AnaReply = withContext(Dispatchers.IO) {
+        runCatching {
+            postDocumentToBackend(profile, filename, fileBytes, prompt)
+        }.getOrElse { error ->
+            Log.e("ChatRepository", "Document upload failed: ${error.message}", error)
+            AnaReply(
+                reply = "Ana can't process this file.",
+                emotion = "calm",
+                voiceTone = "warm",
+                safetyLevel = "error",
+            )
+        }
+    }
+
     suspend fun synthesizeVoice(
         profile: UserProfile,
         text: String,
         outputFile: File,
     ): Boolean = withContext(Dispatchers.IO) {
         runCatching {
-        val endpoint = profile.backendUrl.trimEnd('/') + "/v1/tts"
-        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-            requestMethod = "POST"
-            connectTimeout = 30_000
-            readTimeout = 60_000
-            doOutput = true
-            setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("Accept", "audio/mpeg")
-        }
+            val endpoint = profile.backendUrl.trimEnd('/') + "/v1/tts"
+            val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 30_000
+                readTimeout = 60_000
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Accept", "audio/mpeg")
+            }
 
             val cleanText = cleanTextForSpeech(text)
             val payload = JSONObject()
@@ -104,6 +123,76 @@ class ChatRepository {
         val json = JSONObject(raw)
         return AnaReply(
             reply = json.optString("reply", "I am here with you."),
+            emotion = json.optString("emotion", "loving"),
+            voiceTone = json.optString("voice_tone", "warm"),
+            safetyLevel = json.optString("safety_level", "ok"),
+            freezeSeconds = json.optInt("freeze_seconds", 0),
+            memoryCandidates = parseMemoryCandidates(json.optJSONArray("memory_candidates")),
+        )
+    }
+
+    private fun postDocumentToBackend(
+        profile: UserProfile,
+        filename: String,
+        fileBytes: ByteArray,
+        prompt: String,
+    ): AnaReply {
+        val endpoint = profile.backendUrl.trimEnd('/') + "/v1/document"
+        val boundary = "Boundary-" + System.currentTimeMillis()
+        val lineEnd = "\r\n"
+        val twoHyphens = "--"
+
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 45_000
+            readTimeout = 90_000
+            doOutput = true
+            doInput = true
+            useCaches = false
+            setRequestProperty("Connection", "Keep-Alive")
+            setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+            setRequestProperty("Accept", "application/json")
+        }
+
+        connection.outputStream.use { output ->
+            if (prompt.isNotBlank()) {
+                val promptPart = buildString {
+                    append(twoHyphens).append(boundary).append(lineEnd)
+                    append("Content-Disposition: form-data; name=\"prompt\"").append(lineEnd)
+                    append("Content-Type: text/plain; charset=UTF-8").append(lineEnd)
+                    append(lineEnd)
+                    append(prompt).append(lineEnd)
+                }
+                output.write(promptPart.toByteArray(Charsets.UTF_8))
+            }
+
+            val fileHeader = buildString {
+                append(twoHyphens).append(boundary).append(lineEnd)
+                append("Content-Disposition: form-data; name=\"file\"; filename=\"$filename\"").append(lineEnd)
+                append("Content-Type: application/octet-stream").append(lineEnd)
+                append(lineEnd)
+            }
+            output.write(fileHeader.toByteArray(Charsets.UTF_8))
+            output.write(fileBytes)
+            output.write(lineEnd.toByteArray(Charsets.UTF_8))
+
+            val endBoundary = "$twoHyphens$boundary$twoHyphens$lineEnd"
+            output.write(endBoundary.toByteArray(Charsets.UTF_8))
+            output.flush()
+        }
+
+        val code = connection.responseCode
+        val stream = if (code in 200..299) connection.inputStream else connection.errorStream
+        val raw = stream?.bufferedReader()?.readText().orEmpty()
+        connection.disconnect()
+
+        if (code !in 200..299) {
+            throw IOException("Document API returned HTTP $code: $raw")
+        }
+
+        val json = JSONObject(raw)
+        return AnaReply(
+            reply = json.optString("reply", "Ana can't process this file."),
             emotion = json.optString("emotion", "loving"),
             voiceTone = json.optString("voice_tone", "warm"),
             safetyLevel = json.optString("safety_level", "ok"),

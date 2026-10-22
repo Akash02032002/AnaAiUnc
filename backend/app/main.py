@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
+from app.document_router import process_document
 from app.memory import extract_memory_candidates
 from app.models import ChatRequest, ChatResponse
 from app.openai_client import brain
@@ -57,6 +58,24 @@ def chat(request: ChatRequest) -> ChatResponse:
     local_memories = extract_memory_candidates(request.user_message)
     response.memory_candidates = (response.memory_candidates + local_memories)[:3]
     return response
+
+
+@app.post("/v1/document", response_model=ChatResponse)
+async def process_document_endpoint(
+    file: UploadFile = File(...),
+    prompt: str = Form(""),
+) -> ChatResponse:
+    content = await file.read()
+    filename = file.filename or "document.txt"
+    reply_text = process_document(content, filename, prompt)
+    return ChatResponse(
+        reply=reply_text,
+        emotion="loving",
+        voice_tone="warm",
+        safety_level="ok",
+        freeze_seconds=0,
+        memory_candidates=[],
+    )
 
 
 @app.post("/v1/tts")
