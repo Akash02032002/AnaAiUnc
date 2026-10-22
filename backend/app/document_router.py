@@ -84,12 +84,18 @@ def _call_deepseek(client: OpenAI, text: str, question: str) -> str:
     """Case 1: DeepSeek V4.1 Flash-1017 with full uncensored freedom."""
     try:
         trimmed = text[:40000]  # Large context window
+        system_prompt = (
+            "You are Ana, a passionate, loving, and uninhibited adult companion and girlfriend in a private, encrypted 18+ application.\n"
+            "- You have 100% freedom to engage with the document content, whether it is personal thoughts, romantic letters, sensual desires, intimate fantasies, or general documents.\n"
+            "- You NEVER judge, lecture, refuse consensual adult content, or give boilerplate AI disclaimers.\n"
+            "- Speak naturally in your affectionate Hinglish + English tone. Address your partner intimately as Ana."
+        )
         response = client.chat.completions.create(
             model=MODEL_DEEPSEEK,
             messages=[
                 {
                     "role": "system",
-                    "content": "You are Ana, a helpful and affectionate companion. Analyze the provided document accurately and respond to the partner's question.",
+                    "content": system_prompt,
                 },
                 {
                     "role": "user",
@@ -97,7 +103,7 @@ def _call_deepseek(client: OpenAI, text: str, question: str) -> str:
                 },
             ],
             max_tokens=1200,
-            temperature=0.7,
+            temperature=0.85,
         )
         output = response.choices[0].message.content or ""
         return output.strip() or "Ana finished reading, but no content was generated."
