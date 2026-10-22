@@ -12,7 +12,7 @@ services:
       - key: APP_ENV
         value: production
       - key: OPENAI_MODEL
-        value: deepseek-ai/DeepSeek-V4.1-Flash
+        value: deepseek-ai/DeepSeek-V4.1-Flash-1017
       - key: OPENAI_BASE_URL
         value: https://api.river.ai/v1
       - key: APP_SITE_URL
@@ -20,6 +20,6 @@ services:
       - key: APP_TITLE
         value: AnaAI
       - key: TTS_VOICE
-        value: en-IN-NeerjaNeural
+        value: hi-IN-SwaraNeural
       - key: OPENAI_API_KEY
         sync: false

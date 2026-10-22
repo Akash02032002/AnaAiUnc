@@ -1,5 +1,15 @@
 package com.aigirlcompanion.ui.screens
 
+import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.media.MediaPlayer
+import android.speech.RecognizerIntent
+import android.speech.tts.TextToSpeech
+import android.speech.tts.Voice
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -25,24 +35,32 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aigirlcompanion.R
 import com.aigirlcompanion.data.ChatMessage
+import com.aigirlcompanion.data.ChatRepository
 import com.aigirlcompanion.data.UserProfile
+import com.aigirlcompanion.data.cleanTextForSpeech
 import com.aigirlcompanion.data.relationshipLabel
 import com.aigirlcompanion.ui.components.emotionColor
+import kotlinx.coroutines.launch
+import java.io.File
+import java.util.Locale
 
 @Composable
 fun ChatScreen(
@@ -53,8 +71,174 @@ fun ChatScreen(
     lastEmotion: String,
     onSend: (String, (String) -> Unit) -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val repository = remember { ChatRepository() }
+
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+
+    var isPlayingVoice by remember { mutableStateOf(false) }
+    var isVoicePending by remember { mutableStateOf(false) }
+    var playingMessageId by remember { mutableStateOf<String?>(null) }
+    var player by remember { mutableStateOf<MediaPlayer?>(null) }
+    var ttsReady by remember { mutableStateOf(false) }
+
+    val tts = remember {
+        TextToSpeech(context) { result ->
+            ttsReady = result == TextToSpeech.SUCCESS
+        }
+    }
+
+    LaunchedEffect(ttsReady) {
+        if (ttsReady) {
+            configureSweetGirlVoice(tts)
+            tts.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                override fun onStart(utteranceId: String?) {
+                    isPlayingVoice = true
+                }
+                override fun onDone(utteranceId: String?) {
+                    isPlayingVoice = false
+                    playingMessageId = null
+                }
+                @Deprecated("Deprecated in Java")
+                override fun onError(utteranceId: String?) {
+                    isPlayingVoice = false
+                    playingMessageId = null
+                }
+                override fun onError(utteranceId: String?, errorCode: Int) {
+                    isPlayingVoice = false
+                    playingMessageId = null
+                }
+            })
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                player?.stop()
+                player?.release()
+            } catch (_: Exception) {}
+            try {
+                tts.stop()
+                tts.shutdown()
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun stopVoice() {
+        isVoicePending = false
+        try {
+            player?.stop()
+            player?.release()
+        } catch (_: Exception) {}
+        player = null
+        try {
+            tts.stop()
+        } catch (_: Exception) {}
+        isPlayingVoice = false
+        playingMessageId = null
+    }
+
+    fun speakReply(reply: String, messageId: String? = null) {
+        val cleanSpeechText = cleanTextForSpeech(reply)
+        stopVoice()
+        isPlayingVoice = true
+        playingMessageId = messageId
+        scope.launch {
+            try {
+                val audioFile = File(context.cacheDir, "ana_chat_voice_reply.mp3")
+                val hasNeuralVoice = repository.synthesizeVoice(profile, cleanSpeechText, audioFile)
+                if (hasNeuralVoice && isPlayingVoice) {
+                    player = MediaPlayer().apply {
+                        setDataSource(audioFile.absolutePath)
+                        setOnCompletionListener {
+                            it.release()
+                            if (player == it) {
+                                player = null
+                                isPlayingVoice = false
+                                playingMessageId = null
+                            }
+                        }
+                        setOnErrorListener { mediaPlayer, _, _ ->
+                            mediaPlayer.release()
+                            if (player == mediaPlayer) {
+                                player = null
+                            }
+                            if (ttsReady && isPlayingVoice) {
+                                tts.speak(cleanSpeechText, TextToSpeech.QUEUE_FLUSH, null, "ana_reply")
+                            } else {
+                                isPlayingVoice = false
+                                playingMessageId = null
+                            }
+                            true
+                        }
+                        prepare()
+                        start()
+                    }
+                } else if (isPlayingVoice) {
+                    if (ttsReady) {
+                        tts.speak(cleanSpeechText, TextToSpeech.QUEUE_FLUSH, null, "ana_reply")
+                    } else {
+                        isPlayingVoice = false
+                        playingMessageId = null
+                    }
+                }
+            } catch (e: Exception) {
+                if (ttsReady && isPlayingVoice) {
+                    tts.speak(cleanSpeechText, TextToSpeech.QUEUE_FLUSH, null, "ana_reply")
+                } else {
+                    isPlayingVoice = false
+                    playingMessageId = null
+                }
+            }
+        }
+    }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                .orEmpty()
+            if (spoken.isNotBlank()) {
+                isVoicePending = true
+                onSend(spoken) { reply ->
+                    if (isVoicePending) {
+                        speakReply(reply)
+                    }
+                }
+            } else {
+                isVoicePending = false
+            }
+        } else {
+            isVoicePending = false
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) {
+            try {
+                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                    putExtra(RecognizerIntent.EXTRA_PROMPT, "Talk to Ana")
+                }
+                speechLauncher.launch(intent)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Voice recognition unavailable on this device", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Microphone permission is needed for voice", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val voiceActive = isPlayingVoice || isVoicePending
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
@@ -86,10 +270,64 @@ fun ChatScreen(
                 }
             }
             items(messages, key = { it.id }) { message ->
-                ChatBubble(message = message)
+                val isThisMessagePlaying = isPlayingVoice && playingMessageId == message.id
+                ChatBubble(
+                    message = message,
+                    isPlaying = isThisMessagePlaying,
+                    onTogglePlay = if (message.role == "assistant") {
+                        {
+                            if (isThisMessagePlaying) {
+                                stopVoice()
+                            } else {
+                                speakReply(message.content, message.id)
+                            }
+                        }
+                    } else null,
+                )
             }
             item { Spacer(modifier = Modifier.height(8.dp)) }
         }
+
+        if (isPlayingVoice) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 2.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_voice),
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            text = "Ana is speaking...",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                    Text(
+                        text = "Click Stop to mute",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
+            }
+        }
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -106,6 +344,42 @@ fun ChatScreen(
                 minLines = 1,
                 maxLines = 4,
             )
+
+            // Small Voice Toggle Button (1st click: start voice / 2nd click: stop voice)
+            Surface(
+                shape = CircleShape,
+                color = if (voiceActive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondaryContainer,
+            ) {
+                IconButton(
+                    onClick = {
+                        if (voiceActive) {
+                            stopVoice()
+                        } else {
+                            val clean = input.trim()
+                            if (clean.isNotBlank()) {
+                                input = ""
+                                isVoicePending = true
+                                onSend(clean) { reply ->
+                                    if (isVoicePending) {
+                                        speakReply(reply)
+                                    }
+                                }
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
+                        }
+                    },
+                    enabled = !sending || voiceActive,
+                ) {
+                    Icon(
+                        painter = painterResource(id = if (voiceActive) R.drawable.ic_stop else R.drawable.ic_mic),
+                        contentDescription = if (voiceActive) "Stop voice" else "Voice mode",
+                        tint = if (voiceActive) Color.White else MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+
+            // Send Button
             Surface(
                 shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary,
@@ -216,31 +490,82 @@ private fun EmptyChat(profile: UserProfile) {
 }
 
 @Composable
-private fun ChatBubble(message: ChatMessage) {
+private fun ChatBubble(
+    message: ChatMessage,
+    isPlaying: Boolean = false,
+    onTogglePlay: (() -> Unit)? = null,
+) {
     val isUser = message.role == "user"
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(0.82f),
+            modifier = Modifier.fillMaxWidth(0.85f),
             shape = RoundedCornerShape(
-                topStart = 8.dp,
-                topEnd = 8.dp,
-                bottomStart = if (isUser) 8.dp else 2.dp,
-                bottomEnd = if (isUser) 2.dp else 8.dp,
+                topStart = 10.dp,
+                topEnd = 10.dp,
+                bottomStart = if (isUser) 10.dp else 2.dp,
+                bottomEnd = if (isUser) 2.dp else 10.dp,
             ),
             color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
             tonalElevation = if (isUser) 0.dp else 1.dp,
         ) {
-            Box(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
                 Text(
                     text = message.content,
                     color = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                if (!isUser && onTogglePlay != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(
+                            onClick = onTogglePlay,
+                            modifier = Modifier.size(24.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = if (isPlaying) R.drawable.ic_stop else R.drawable.ic_voice),
+                                contentDescription = if (isPlaying) "Stop voice" else "Play voice",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isPlaying) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
 }
 
+private fun configureSweetGirlVoice(tts: TextToSpeech) {
+    val sweetVoice = tts.voices
+        ?.filter { it.locale.language == Locale.ENGLISH.language }
+        ?.sortedWith(
+            compareByDescending<Voice> { it.name.containsAny("female", "woman", "girl") }
+                .thenByDescending { it.name.containsAny("neural", "wavenet", "premium", "enhanced") }
+                .thenByDescending { it.locale.country == Locale.US.country }
+                .thenBy { it.isNetworkConnectionRequired }
+                .thenByDescending { it.quality }
+                .thenBy { it.latency }
+        )
+        ?.firstOrNull()
+
+    if (sweetVoice != null) {
+        tts.voice = sweetVoice
+    } else {
+        tts.language = Locale.US
+    }
+
+    tts.setSpeechRate(0.96f)
+    tts.setPitch(1.02f)
+}
+
+private fun String.containsAny(vararg needles: String): Boolean {
+    val text = lowercase(Locale.US)
+    return needles.any { text.contains(it) }
+}

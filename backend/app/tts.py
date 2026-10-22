@@ -1,21 +1,43 @@
 from io import BytesIO
+import unicodedata
 
 import edge_tts
 
 
-DEFAULT_VOICE = "en-IN-NeerjaNeural"
+DEFAULT_VOICE = "hi-IN-SwaraNeural"
 
 
-async def synthesize_sweet_voice(text: str, voice: str = DEFAULT_VOICE) -> bytes:
-    clean_text = " ".join(text.split())
+def clean_text_for_speech(text: str) -> str:
+    result = []
+    for ch in text:
+        cat = unicodedata.category(ch)
+        code = ord(ch)
+        if cat in ("So", "Cs", "Sk") or 0x1F000 <= code <= 0x1FFFF or 0xFE00 <= code <= 0xFE0F or code in (0x200D, 0x20E3):
+            continue
+        if 0x2600 <= code <= 0x27BF:
+            continue
+        if ch in ("*", "_", "~", "`"):
+            continue
+        result.append(ch)
+    cleaned = "".join(result)
+    cleaned = " ".join(cleaned.split()).strip()
+    return cleaned if cleaned else text
+
+
+async def synthesize_sweet_voice(text: str, voice: str = "") -> bytes:
+    clean_text = clean_text_for_speech(text)
     if not clean_text:
         raise ValueError("Text is required")
 
+    selected_voice = voice.strip()
+    if not selected_voice or selected_voice == "en-IN-NeerjaNeural":
+        selected_voice = DEFAULT_VOICE
+
     communicate = edge_tts.Communicate(
         clean_text[:1200],
-        voice=voice,
-        rate="-12%",
-        pitch="+8Hz",
+        voice=selected_voice,
+        rate="-4%",
+        pitch="-2Hz",
         volume="+0%",
     )
     audio = BytesIO()

@@ -1,9 +1,14 @@
 import os
 from dataclasses import dataclass
 
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-
+# Ensure backend/.env is found regardless of current working directory
+_env_path = Path(__file__).resolve().parent.parent / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path)
 load_dotenv()
 
 
@@ -15,7 +20,7 @@ class Settings:
     openai_base_url: str = os.getenv("OPENAI_BASE_URL", "")
     app_site_url: str = os.getenv("APP_SITE_URL", "http://localhost")
     app_title: str = os.getenv("APP_TITLE", "AnaAI")
-    tts_voice: str = os.getenv("TTS_VOICE", "en-IN-NeerjaNeural")
+    tts_voice: str = os.getenv("TTS_VOICE", "hi-IN-SwaraNeural")
 
     @property
     def is_openrouter(self) -> bool:
@@ -41,7 +46,7 @@ class Settings:
         if self.is_openrouter and model.upper() == "GPT-OSS-120B":
             return "openai/gpt-oss-120b"
         if self.is_river and (not model or model == "gpt-4.1-mini"):
-            return "deepseek-ai/DeepSeek-V4.1-Flash"
+            return "deepseek-ai/DeepSeek-V4.1-Flash-1017"
         return model
 
 

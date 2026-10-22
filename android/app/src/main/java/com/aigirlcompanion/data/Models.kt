@@ -76,3 +76,30 @@ data class AnaReply(
     val freezeSeconds: Int = 0,
     val memoryCandidates: List<MemoryCandidate> = emptyList(),
 )
+
+fun cleanTextForSpeech(text: String): String {
+    val builder = StringBuilder()
+    var i = 0
+    while (i < text.length) {
+        val cp = text.codePointAt(i)
+        val charCount = Character.charCount(cp)
+        val type = Character.getType(cp)
+
+        val isEmojiOrSymbol = type == Character.OTHER_SYMBOL.toInt() ||
+                type == Character.MODIFIER_SYMBOL.toInt() ||
+                type == Character.SURROGATE.toInt() ||
+                type == Character.FORMAT.toInt() ||
+                (cp in 0x1F000..0x1FAFF) ||
+                (cp in 0x2600..0x27BF) ||
+                (cp in 0xFE00..0xFE0F) ||
+                cp == 0x200D ||
+                cp == 0x20E3
+
+        if (!isEmojiOrSymbol && cp != '*'.code && cp != '_'.code && cp != '~'.code && cp != '`'.code) {
+            builder.appendCodePoint(cp)
+        }
+        i += charCount
+    }
+    val cleaned = builder.toString().replace(Regex("\\s+"), " ").trim()
+    return cleaned.ifBlank { text }
+}

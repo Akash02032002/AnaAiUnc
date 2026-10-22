@@ -1,5 +1,6 @@
 package com.aigirlcompanion.data
 
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -20,7 +21,8 @@ class ChatRepository {
 
         runCatching {
             postToBackend(profile, message, recentMessages, memories)
-        }.getOrElse {
+        }.getOrElse { error ->
+            Log.e("ChatRepository", "Backend request failed for ${profile.backendUrl}: ${error.message}", error)
             LocalAnaEngine.reply(profile, message).copy(safetyLevel = "offline_fallback")
         }
     }
@@ -34,16 +36,17 @@ class ChatRepository {
         val endpoint = profile.backendUrl.trimEnd('/') + "/v1/tts"
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
-            connectTimeout = 20_000
-            readTimeout = 90_000
-                doOutput = true
-                setRequestProperty("Content-Type", "application/json")
-                setRequestProperty("Accept", "audio/mpeg")
-            }
+            connectTimeout = 30_000
+            readTimeout = 60_000
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json")
+            setRequestProperty("Accept", "audio/mpeg")
+        }
 
+            val cleanText = cleanTextForSpeech(text)
             val payload = JSONObject()
-                .put("text", text)
-                .put("voice", "en-IN-NeerjaNeural")
+                .put("text", cleanText)
+                .put("voice", "hi-IN-SwaraNeural")
             connection.outputStream.bufferedWriter().use { writer ->
                 writer.write(payload.toString())
             }
@@ -62,7 +65,10 @@ class ChatRepository {
             }
             connection.disconnect()
             outputFile.length() > 0L
-        }.getOrDefault(false)
+        }.getOrElse { error ->
+            Log.e("ChatRepository", "TTS request failed for ${profile.backendUrl}: ${error.message}", error)
+            false
+        }
     }
 
     private fun postToBackend(
@@ -74,8 +80,8 @@ class ChatRepository {
         val endpoint = profile.backendUrl.trimEnd('/') + "/v1/chat"
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
-            connectTimeout = 20_000
-            readTimeout = 90_000
+            connectTimeout = 30_000
+            readTimeout = 60_000
             doOutput = true
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")

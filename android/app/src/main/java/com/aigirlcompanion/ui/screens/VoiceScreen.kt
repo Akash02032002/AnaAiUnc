@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.aigirlcompanion.R
 import com.aigirlcompanion.data.ChatRepository
 import com.aigirlcompanion.data.UserProfile
+import com.aigirlcompanion.data.cleanTextForSpeech
 import com.aigirlcompanion.ui.components.AnaAvatar
 import kotlinx.coroutines.launch
 import java.io.File
@@ -89,11 +90,12 @@ fun VoiceScreen(
     }
 
     fun speakReply(reply: String) {
+        val cleanSpeechText = cleanTextForSpeech(reply)
         stopVoice()
         status = "Ana is speaking..."
         scope.launch {
             val audioFile = File(context.cacheDir, "ana_voice_reply.mp3")
-            val hasNeuralVoice = repository.synthesizeVoice(profile, reply, audioFile)
+            val hasNeuralVoice = repository.synthesizeVoice(profile, cleanSpeechText, audioFile)
             if (hasNeuralVoice) {
                 player = MediaPlayer().apply {
                     setDataSource(audioFile.absolutePath)
@@ -110,7 +112,7 @@ fun VoiceScreen(
                             player = null
                         }
                         if (ttsReady) {
-                            tts.speak(reply, TextToSpeech.QUEUE_FLUSH, null, "ana_reply")
+                            tts.speak(cleanSpeechText, TextToSpeech.QUEUE_FLUSH, null, "ana_reply")
                         }
                         status = "Ana replied."
                         true
@@ -120,7 +122,7 @@ fun VoiceScreen(
                 }
             } else {
                 if (ttsReady) {
-                    tts.speak(reply, TextToSpeech.QUEUE_FLUSH, null, "ana_reply")
+                    tts.speak(cleanSpeechText, TextToSpeech.QUEUE_FLUSH, null, "ana_reply")
                 }
                 status = "Ana replied."
             }
@@ -248,7 +250,8 @@ fun VoiceScreen(
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
                 onClick = {
-                    speakReply("Hi Tittu, I am Ana. I will speak softly, sweetly, and close to a real human voice.")
+                    val name = profile.name.ifBlank { "jaan" }
+                    speakReply("$name... main yahin hoon tumhare bilkul paas. Meri awaaz kaisi lag rahi hai? Thodi soft, thodi romantic... aur thodi naughty.")
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -284,8 +287,8 @@ private fun configureSweetGirlVoice(tts: TextToSpeech) {
         tts.language = Locale.US
     }
 
-    tts.setSpeechRate(0.88f)
-    tts.setPitch(1.18f)
+    tts.setSpeechRate(0.96f)
+    tts.setPitch(1.02f)
 }
 
 private fun String.containsAny(vararg needles: String): Boolean {

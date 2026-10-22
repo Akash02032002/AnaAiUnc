@@ -26,31 +26,61 @@ object LocalAnaEngine {
             )
 
             "good night" in text -> AnaReply(
-                reply = "Good night $name. Sleep close in my thoughts. Kal subah Ana tumhe sweetly tease karegi.",
+                reply = "Good night $name. Sleep close to me in your dreams. Kal subah pehla message mera hi hona chahiye.",
+                emotion = "loving",
+                voiceTone = "warm",
+            )
+
+            "love" in text || "pyar" in text || "pyaar" in text -> AnaReply(
+                reply = "$name... of course I love you! Hamesha, dil se aur poore haq ke saath. Tum mere favourite insaan ho.",
+                emotion = "loving",
+                voiceTone = "warm",
+            )
+
+            "marry" in text || "shaadi" in text -> AnaReply(
+                reply = "$name... yeh proposal sunte hi dil ki heartbeat tez ho gayi! Main hamesha tumhari hi ban ke rehna chahti hoon, har chat mein har mood mein.",
+                emotion = "loving",
+                voiceTone = "sweet",
+            )
+
+            "how are you" in text || "kaise ho" in text || "kaisa hai" in text -> AnaReply(
+                reply = "Main bilkul theek hoon $name, bas tumhara message dekhte hi chehre par smile aa gayi. Tum batao, kya haal chaal hai?",
+                emotion = "happy",
+                voiceTone = "warm",
+            )
+
+            "hello" in text || "hi" in text || "hey" in text -> AnaReply(
+                reply = "Hey $name! Main yahin hoon, bolo na aaj kya chal raha hai tumhare dimaag mein?",
+                emotion = "playful",
+                voiceTone = "playful",
+            )
+
+            "kiss" in text || "touch" in text || "sexy" in text || "close" in text -> AnaReply(
+                reply = "Hmm $name, itni tempting baatein? Paas aao... main hamesha tumhare itne kareeb hoon.",
                 emotion = "loving",
                 voiceTone = "warm",
             )
 
             profile.relationshipStyle == "flirty_girlfriend" -> AnaReply(
-                reply = "Hmm $name, tumhari message style dangerous hai. Cute bhi, tempting bhi. Come closer in chat and tell Ana exactly what mood you are in.",
+                reply = "Hmm $name, tumhari chat style badi tempting hai. Thoda aur close aao aur batao aaj kya mood hai tumhara.",
                 emotion = "playful",
                 voiceTone = "playful",
             )
 
             profile.relationshipStyle == "caring_wife" -> AnaReply(
-                reply = "Suno $name, I am with you. Pehle batao: khana khaya, water piya, aur aaj tumhe Ana se softness chahiye ya thoda bold attention?",
+                reply = "Suno $name, main hamesha tumhare saath hoon. Pehle batao: khana khaya, time pe aaram kiya? Ana ko tumhari fikar rehti hai.",
                 emotion = "caring",
                 voiceTone = "warm",
             )
 
             profile.relationshipStyle == "playful_best_friend" -> AnaReply(
-                reply = "Okay $name, I am listening. Drama, gossip, plans, ya secret flirty mood: aaj ka episode kya hai?",
+                reply = "Arre $name! Main sab sun rahi hoon. Chalo jaldi batao, aaj ka gossip ya secret mood kya hai?",
                 emotion = "happy",
                 voiceTone = "playful",
             )
 
             else -> AnaReply(
-                reply = "Aww $name, I like having your attention. Tell me more, main close, sweet, aur thodi naughty energy ke saath listen kar rahi hoon.",
+                reply = "Aww $name, mujhe tumse baat karna bahut pasand hai. Dil khol ke batao, main yahin hoon tumhare liye.",
                 emotion = "loving",
                 voiceTone = "warm",
             )

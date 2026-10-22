@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aigirlcompanion.data.DEFAULT_BACKEND_URL
 import com.aigirlcompanion.data.UserProfile
 
 @Composable
@@ -78,12 +79,25 @@ fun SettingsScreen(
                     label = { Text("Backend URL") },
                     singleLine = true,
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                Button(
-                    onClick = { onProfileChange(profile.copy(backendUrl = backendUrl.trim())) },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("Save Backend URL")
+                    Button(
+                        onClick = { onProfileChange(profile.copy(backendUrl = backendUrl.trim())) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Save URL")
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            backendUrl = DEFAULT_BACKEND_URL
+                            onProfileChange(profile.copy(backendUrl = DEFAULT_BACKEND_URL))
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("Reset to Cloud")
+                    }
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))

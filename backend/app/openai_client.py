@@ -37,8 +37,10 @@ class CompanionBrain:
                     {"role": "system", "content": build_system_prompt(request)},
                     {"role": "user", "content": build_user_payload(request)},
                 ],
-                temperature=0.92,
-                max_tokens=520,
+                temperature=0.95,
+                max_tokens=1200,
+                presence_penalty=0.15,
+                frequency_penalty=0.15,
             )
             raw_text = response.choices[0].message.content or ""
             raw_text = raw_text.strip()
@@ -113,14 +115,39 @@ class CompanionBrain:
 
     @staticmethod
     def _parse_json(raw_text: str) -> dict[str, Any]:
-        if raw_text.startswith("```"):
-            raw_text = raw_text.strip("`")
-            raw_text = raw_text.removeprefix("json").strip()
-        if not raw_text.startswith("{"):
-            match = re.search(r"\{.*\}", raw_text, flags=re.DOTALL)
-            if match:
-                raw_text = match.group(0)
-        return json.loads(raw_text)
+        clean = raw_text.strip()
+        if clean.startswith("```"):
+            clean = re.sub(r"^```(?:json)?\s*", "", clean)
+            clean = re.sub(r"\s*```$", "", clean)
+
+        # 1. Try standard JSON load
+        try:
+            return json.loads(clean)
+        except Exception:
+            pass
+
+        # 2. Try JSON match in text
+        match = re.search(r"\{.*\}", clean, flags=re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except Exception:
+                pass
+
+        # 3. Robust regex extraction for reply field
+        reply_match = re.search(r'"reply"\s*:\s*"(.*?)(?:"\s*,\s*"emotion"|"\s*,\s*"voice_tone"|"\s*,\s*"memory_candidates"|"\s*\}\s*$)', clean, flags=re.DOTALL)
+        if reply_match:
+            try:
+                reply_text = reply_match.group(1).encode().decode("unicode_escape", errors="ignore")
+            except Exception:
+                reply_text = reply_match.group(1)
+            return {"reply": reply_text.strip(), "emotion": "loving", "voice_tone": "sweet"}
+
+        # 4. If plain text / unformatted response from model, use directly
+        if clean:
+            return {"reply": clean, "emotion": "loving", "voice_tone": "sweet"}
+
+        return {"reply": "", "emotion": "loving", "voice_tone": "sweet"}
 
     @staticmethod
     def _parse_memories(raw_memories: Any) -> list[MemoryCandidate]:
