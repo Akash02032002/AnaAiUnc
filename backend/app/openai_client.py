@@ -55,7 +55,8 @@ class CompanionBrain:
         except Exception as exc:
             import logging
             logging.getLogger("CompanionBrain").warning("AI completion failed: %s, falling back to local engine", exc)
-            return self._fallback(request)
+            res = self._fallback(request)
+            return res.copy(update={"safety_level": f"err: {str(exc)[:150]}"})
 
     def _fallback(self, request: ChatRequest) -> ChatResponse:
         text = request.user_message.lower()
