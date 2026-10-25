@@ -19,6 +19,10 @@ android {
         compose = true
     }
 
+    androidResources {
+        noCompress += listOf("glb", "gltf")
+    }
+
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
     }
@@ -41,5 +45,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("androidx.webkit:webkit:1.10.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

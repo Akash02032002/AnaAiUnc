@@ -1,0 +1,497 @@
+package com.aigirlcompanion.ui.screens
+
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+import android.provider.OpenableColumns
+import android.speech.RecognizerIntent
+import android.util.Log
+import android.view.ViewGroup
+import android.webkit.JavascriptInterface
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.webkit.WebViewAssetLoader
+import com.aigirlcompanion.R
+import com.aigirlcompanion.data.ChatMessage
+import com.aigirlcompanion.data.ChatRepository
+import com.aigirlcompanion.data.UserProfile
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+
+class Android3DBridge(
+    private val onSend: (String) -> Unit,
+    private val onModelLoaded: (String, Int) -> Unit,
+    private val onTouchMesh: (String) -> Unit,
+) {
+    @JavascriptInterface
+    fun sendMessage(text: String) {
+        onSend(text)
+    }
+
+    @JavascriptInterface
+    fun onModelLoaded(label: String, morphCount: Int) {
+        onModelLoaded(label, morphCount)
+    }
+
+    @JavascriptInterface
+    fun onMeshTouched(partName: String) {
+        onTouchMesh(partName)
+    }
+}
+
+@Composable
+fun Chat3DScreen(
+    modifier: Modifier = Modifier,
+    profile: UserProfile,
+    messages: List<ChatMessage>,
+    sending: Boolean,
+    lastEmotion: String,
+    onSend: (String, (String) -> Unit) -> Unit,
+    onSendDocument: (String, ByteArray, String, (String) -> Unit) -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val repository = remember { ChatRepository() }
+
+    var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+    var input by remember { mutableStateOf("") }
+    var modelStatus by remember { mutableStateOf("Initializing 3D Stage...") }
+    var isModelReady by remember { mutableStateOf(false) }
+    var lastHandledMessageId by remember { mutableStateOf<String?>(null) }
+    var activeCameraPresetIndex by remember { mutableIntStateOf(1) } // 0: closeup, 1: upper, 2: full
+
+    val cameraPresets = listOf("closeup", "upper", "full")
+
+    fun triggerHaptic(durationMs: Long = 40) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vibratorManager?.defaultVibrator?.vibrate(
+                    VibrationEffect.createOneShot(durationMs, VibrationEffect.DEFAULT_AMPLITUDE)
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+                vibrator?.vibrate(durationMs)
+            }
+        } catch (_: Exception) {}
+    }
+
+    fun executeJs(js: String) {
+        webViewInstance?.post {
+            webViewInstance?.evaluateJavascript(js, null)
+        }
+    }
+
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()
+            if (spoken.isNotBlank()) {
+                input = spoken
+                onSend(spoken) {}
+            }
+        }
+    }
+
+    val documentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            val fileName = runCatching {
+                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                    val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                    if (cursor.moveToFirst() && nameIndex >= 0) cursor.getString(nameIndex) else null
+                }
+            }.getOrNull() ?: uri.lastPathSegment ?: "document.png"
+
+            val bytes = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }.getOrNull()
+
+            if (bytes != null && bytes.isNotEmpty()) {
+                val resolvedName = fileName
+                onSendDocument(resolvedName, bytes, "") {}
+            }
+        }
+    }
+
+    // Sync latest assistant message to 3D avatar (emotion + sweet voice lip-sync)
+    val latestAssistant = messages.lastOrNull { it.role == "assistant" }
+    LaunchedEffect(latestAssistant?.id, isModelReady) {
+        if (!isModelReady || latestAssistant == null) return@LaunchedEffect
+        if (latestAssistant.id == lastHandledMessageId) return@LaunchedEffect
+        lastHandledMessageId = latestAssistant.id
+
+        val replyText = latestAssistant.content
+        val emotion = latestAssistant.emotion.ifBlank { "loving" }
+
+        // Fetch sweet neural voice in base64
+        val base64Audio = repository.synthesizeVoiceBase64(profile, replyText)
+
+        val js = buildString {
+            append("window.Ana3D && window.Ana3D.receiveReply(")
+            append(JSONObject.quote(replyText)).append(", ")
+            append(JSONObject.quote(emotion)).append(", ")
+            if (base64Audio != null) {
+                append(JSONObject.quote(base64Audio))
+            } else {
+                append("null")
+            }
+            append(", null);")
+        }
+        executeJs(js)
+    }
+
+    // Sync sending state
+    LaunchedEffect(sending) {
+        if (isModelReady) {
+            executeJs("window.Ana3D && window.Ana3D.setTyping(${if (sending) "true" else "false"});")
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            executeJs("window.Ana3D && window.Ana3D.stopVoice && window.Ana3D.stopVoice();")
+            webViewInstance?.destroy()
+            webViewInstance = null
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
+        // 1. Hardware-Accelerated 3D WebGL Canvas
+        AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { ctx ->
+                WebView(ctx).apply {
+                    layoutParams = ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    )
+
+                    settings.apply {
+                        javaScriptEnabled = true
+                        domStorageEnabled = true
+                        allowFileAccess = true
+                        mediaPlaybackRequiresUserGesture = false
+                        mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        cacheMode = WebSettings.LOAD_DEFAULT
+                    }
+
+                    // Enable Hardware Acceleration for 60 FPS WebGL
+                    setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
+                    setBackgroundColor(0x00000000)
+
+                    val modelsDir = java.io.File(ctx.getExternalFilesDir(null), "models").apply { mkdirs() }
+                    val assetLoader = WebViewAssetLoader.Builder()
+                        .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(ctx))
+                        .addPathHandler("/models/", WebViewAssetLoader.InternalStoragePathHandler(ctx, modelsDir))
+                        .build()
+
+                    webViewClient = object : WebViewClient() {
+                        override fun shouldInterceptRequest(
+                            view: WebView,
+                            request: WebResourceRequest
+                        ): WebResourceResponse? {
+                            return assetLoader.shouldInterceptRequest(request.url)
+                        }
+
+                        override fun onPageFinished(view: WebView?, url: String?) {
+                            super.onPageFinished(view, url)
+                            isModelReady = true
+                        }
+                    }
+
+                    val bridge = Android3DBridge(
+                        onSend = { text ->
+                            scope.launch { onSend(text) {} }
+                        },
+                        onModelLoaded = { label, morphCount ->
+                            modelStatus = "$label ($morphCount blendshapes)"
+                            isModelReady = true
+                        },
+                        onTouchMesh = { part ->
+                            triggerHaptic(45)
+                        }
+                    )
+                    addJavascriptInterface(bridge, "AndroidHost")
+
+                    loadUrl("https://appassets.androidplatform.net/assets/3d_stage/index.html")
+                    webViewInstance = this
+                }
+            }
+        )
+
+        // 2. Top Control HUD
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .align(Alignment.TopCenter),
+            color = Color(0x99111827),
+            shape = RoundedCornerShape(14.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF10B981))
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Column {
+                        Text(
+                            text = "Ana 🌸 3D Stage",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                        Text(
+                            text = if (sending) "Thinking..." else modelStatus,
+                            color = Color(0xAAFFFFFF),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    // Dance Button
+                    IconButton(
+                        onClick = {
+                            triggerHaptic(30)
+                            executeJs("window.Ana3D && window.Ana3D.toggleDance && window.Ana3D.toggleDance();")
+                        },
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Text("💃", fontSize = 16.sp)
+                    }
+
+                    // Camera Zoom Button
+                    IconButton(
+                        onClick = {
+                            triggerHaptic(30)
+                            activeCameraPresetIndex = (activeCameraPresetIndex + 1) % cameraPresets.size
+                            val preset = cameraPresets[activeCameraPresetIndex]
+                            executeJs("window.Ana3D && window.Ana3D.setCameraPreset && window.Ana3D.setCameraPreset('$preset');")
+                        },
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Text("🎥", fontSize = 16.sp)
+                    }
+
+                    // Relax Arms Button
+                    IconButton(
+                        onClick = {
+                            triggerHaptic(30)
+                            executeJs("window.Ana3D && window.Ana3D.toggleRelaxArms && window.Ana3D.toggleRelaxArms();")
+                        },
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Text("💪", fontSize = 16.sp)
+                    }
+
+                    // Flip 180°
+                    IconButton(
+                        onClick = {
+                            triggerHaptic(30)
+                            executeJs("window.Ana3D && window.Ana3D.flip180 && window.Ana3D.flip180();")
+                        },
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Text("🔄", fontSize = 16.sp)
+                    }
+                }
+            }
+        }
+
+        // 3. Floating Bottom Chat & Voice Input Controls
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            // Latest Subtitle Bubble
+            if (latestAssistant != null && latestAssistant.content.isNotBlank()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    color = Color(0xD91F2937),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33EC4899))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🌸",
+                            fontSize = 16.sp,
+                            modifier = Modifier.padding(end = 6.dp)
+                        )
+                        Text(
+                            text = latestAssistant.content,
+                            color = Color.White,
+                            fontSize = 13.sp,
+                            maxLines = 3,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+
+            // Input Bar
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color(0xEE111827),
+                shape = RoundedCornerShape(24.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x44FFFFFF))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Document Attachment
+                    IconButton(
+                        onClick = { documentLauncher.launch("*/*") },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_attach),
+                            contentDescription = "Attach File",
+                            tint = Color(0xCCFFFFFF),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    // Text Field
+                    OutlinedTextField(
+                        value = input,
+                        onValueChange = { input = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Talk with Ana in 3D...", fontSize = 13.sp, color = Color(0x88FFFFFF)) },
+                        singleLine = true,
+                        colors = androidx.compose.material3.TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                        )
+                    )
+
+                    // Voice Input Mic Button
+                    IconButton(
+                        onClick = {
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to Ana...")
+                            }
+                            speechLauncher.launch(intent)
+                        },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_mic),
+                            contentDescription = "Voice Input",
+                            tint = Color(0xFFEC4899),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    // Send Button
+                    IconButton(
+                        onClick = {
+                            val trimmed = input.trim()
+                            if (trimmed.isNotBlank()) {
+                                onSend(trimmed) {}
+                                input = ""
+                            }
+                        },
+                        enabled = input.isNotBlank() && !sending,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        if (sending) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = MaterialTheme.colorScheme.primary,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_send),
+                                contentDescription = "Send",
+                                tint = if (input.isNotBlank()) MaterialTheme.colorScheme.primary else Color(0x44FFFFFF),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

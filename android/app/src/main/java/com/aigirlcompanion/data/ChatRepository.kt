@@ -90,6 +90,44 @@ class ChatRepository {
         }
     }
 
+    suspend fun synthesizeVoiceBase64(
+        profile: UserProfile,
+        text: String,
+    ): String? = withContext(Dispatchers.IO) {
+        runCatching {
+            val endpoint = profile.backendUrl.trimEnd('/') + "/v1/tts"
+            val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                connectTimeout = 30_000
+                readTimeout = 60_000
+                doOutput = true
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("Accept", "audio/mpeg")
+            }
+
+            val cleanText = cleanTextForSpeech(text)
+            val payload = JSONObject()
+                .put("text", cleanText)
+                .put("voice", "hi-IN-SwaraNeural")
+            connection.outputStream.bufferedWriter().use { writer ->
+                writer.write(payload.toString())
+            }
+
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                connection.disconnect()
+                return@withContext null
+            }
+
+            val bytes = connection.inputStream.readBytes()
+            connection.disconnect()
+            android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+        }.getOrElse { error ->
+            Log.e("ChatRepository", "TTS base64 failed for ${profile.backendUrl}: ${error.message}", error)
+            null
+        }
+    }
+
     private fun postToBackend(
         profile: UserProfile,
         message: String,

@@ -23,6 +23,7 @@ import com.aigirlcompanion.data.LocalMemoryStore
 import com.aigirlcompanion.data.MemoryCandidate
 import com.aigirlcompanion.data.MemoryItem
 import com.aigirlcompanion.data.UserProfile
+import com.aigirlcompanion.ui.screens.Chat3DScreen
 import com.aigirlcompanion.ui.screens.ChatScreen
 import com.aigirlcompanion.ui.screens.MemoryScreen
 import com.aigirlcompanion.ui.screens.OnboardingScreen
@@ -36,8 +37,8 @@ private enum class AppTab(
     val label: String,
     val iconRes: Int,
 ) {
-    Chat("Chat", R.drawable.ic_chat),
-    Voice("Voice", R.drawable.ic_voice),
+    Chat("💬 2D Chat", R.drawable.ic_chat),
+    Voice("💃 3D Chat", R.drawable.ic_voice),
     Memory("Memory", R.drawable.ic_memory),
     Profile("Profile", R.drawable.ic_person),
     Settings("Settings", R.drawable.ic_settings),
@@ -55,7 +56,7 @@ fun AiGirlApp() {
     var profile by remember { mutableStateOf(store.loadProfile()) }
     var memories by remember { mutableStateOf(store.loadMemories()) }
     var messages by remember { mutableStateOf(store.loadMessages()) }
-    var selectedTab by remember { mutableStateOf(AppTab.Chat) }
+    var selectedTab by remember { mutableStateOf(AppTab.Voice) }
     var sending by remember { mutableStateOf(false) }
     var frozenUntil by remember { mutableLongStateOf(0L) }
     var lastEmotion by remember { mutableStateOf("loving") }
@@ -207,12 +208,14 @@ fun AiGirlApp() {
                     onDeleteMessage = ::deleteChatMessage,
                 )
 
-                AppTab.Voice -> VoiceScreen(
+                AppTab.Voice -> Chat3DScreen(
                     modifier = modifier,
                     profile = profile,
                     sending = sending,
                     lastEmotion = lastEmotion,
-                    onSendVoice = ::sendUserMessage,
+                    messages = messages,
+                    onSend = ::sendUserMessage,
+                    onSendDocument = ::sendDocumentMessage,
                 )
 
                 AppTab.Memory -> MemoryScreen(

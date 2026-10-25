@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ana — 3D AI Companion & Stage Controller</title>
+    <script type="module" crossorigin src="./assets/index-Cw_ZYAkZ.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-ChgDFcLO.css">
+  </head>
+  <body>
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Top Status & Model Loader Bar -->
+    <header class="top-bar glass-panel">
+      <div class="brand">
+        <span class="status-dot" id="status-dot"></span>
+        <div>
+          <h1>Ana — Your 3D AI Girlfriend</h1>
+          <p id="model-status">Loading 3D character...</p>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button class="action-btn active-toggle" id="btn-cursor-track" title="Toggle Cursor Face Tracking (Shortcut: Press C)">
+          🎯 Cursor Track: ON
+        </button>
+        <button class="action-btn off-toggle" id="btn-dance-toggle" title="Toggle Dancing Mode ON/OFF (Shortcut: Press D)">
+          💃 Dance: OFF
+        </button>
+        <select id="voice-select" class="action-btn voice-select" title="Ana's Voice Persona">
+          <option value="ava" selected>🌸 Voice: Ava (Soft & Cheerful)</option>
+          <option value="jenny">🌺 Voice: Jenny (Warm & Natural)</option>
+          <option value="emma">🌼 Voice: Emma (Gentle & Sweet)</option>
+        </select>
+        <button class="action-btn" id="btn-flip-model" title="Rotate character 180 degrees">
+          🔄 Flip 180°
+        </button>
+        <button class="action-btn" id="btn-relax-arms" title="Toggle T-Pose vs Relaxed Arms">
+          💪 Relax Arms
+        </button>
+        <button class="action-btn wa-toggle-btn active-chat" id="btn-toggle-chat" title="Toggle WhatsApp Chat View">
+          💬 WhatsApp Chat <span class="badge-count" id="chat-badge-count">1</span>
+        </button>
+        <label for="glb-upload" class="upload-btn">
+          Load .GLB Model
+        </label>
+        <input type="file" id="glb-upload" accept=".glb,.gltf" hidden />
+      </div>
+    </header>
+
+    <!-- Main WhatsApp-Style Conversation Section (Visible on Stage) -->
+    <section id="whatsapp-drawer" class="whatsapp-chat-section glass-panel">
+      <!-- WhatsApp Header -->
+      <div class="wa-header">
+        <div class="wa-user-info">
+          <div class="wa-avatar-wrap">
+            <div class="wa-avatar">🌸</div>
+            <span class="wa-online-dot"></span>
+          </div>
+          <div class="wa-meta">
+            <h3>Ana 🌸</h3>
+            <span class="wa-status" id="wa-status-text">online • Your Loving AI Girlfriend 💖</span>
+          </div>
+        </div>
+        <div class="wa-header-actions">
+          <button class="wa-icon-btn" id="wa-btn-clear" title="Clear Chat History">🗑️</button>
+          <button class="wa-icon-btn" id="wa-btn-close" title="Minimize Chat Section">◀</button>
+        </div>
+      </div>
+
+      <!-- Messages Stream (Past & Present) -->
+      <div class="wa-messages" id="wa-messages-list">
+        <!-- Loaded dynamically from persistent memory -->
+      </div>
+
+      <!-- Typing Indicator -->
+      <div class="wa-typing-indicator" id="wa-typing-indicator">
+        <div class="wa-typing-bubble">
+          <span class="wa-typing-dots">
+            <span></span><span></span><span></span>
+          </span>
+          <span class="wa-typing-label">Ana is thinking...</span>
+        </div>
+      </div>
+
+      <!-- WhatsApp Bottom Input Bar -->
+      <form class="wa-input-bar" id="wa-input-form">
+        <input type="text" id="wa-user-input" placeholder="Type a message to Ana..." autocomplete="off" />
+        <button type="button" class="wa-input-mic" id="wa-mic-btn" title="Voice Input (Speech-to-Text)">🎙️</button>
+        <button type="submit" class="wa-input-send" id="wa-send-btn" title="Send message">➤</button>
+      </form>
+    </section>
+
+    <!-- Right Live Blendshape Telemetry Panel -->
+    <aside class="telemetry-panel glass-panel">
+      <h3>Live Blendshapes</h3>
+      <div id="blendshape-bars" class="bars-container"></div>
+      <div class="toggle-row">
+        <label>
+          <input type="checkbox" id="toggle-headtrack" checked />
+          Mouse Gaze (Key: C)
+        </label>
+        <label>
+          <input type="checkbox" id="toggle-autoblink" checked />
+          Auto Eye Blink
+        </label>
+      </div>
+    </aside>
+
+    <!-- Spoken Subtitles Overlay -->
+    <div id="subtitle-box" class="subtitle-panel glass-panel">
+      <p id="subtitle-text">Ana is ready to chat...</p>
+    </div>
+
+    <!-- Compact Bottom Interactive Dock -->
+    <section class="control-dock glass-panel">
+      <div class="dock-row">
+        <div class="control-group">
+          <span class="group-label">Expressions</span>
+          <div class="button-row" id="emotion-buttons">
+            <button class="ctrl-btn active" data-emotion="neutral">Neutral</button>
+            <button class="ctrl-btn" data-emotion="happy">Happy</button>
+            <button class="ctrl-btn" data-emotion="shy">Shy / Blush</button>
+            <button class="ctrl-btn" data-emotion="surprised">Surprised</button>
+            <button class="ctrl-btn" data-emotion="sad">Sad</button>
+            <button class="ctrl-btn" data-emotion="angry">Angry</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <span class="group-label">Camera Framing</span>
+          <div class="button-row">
+            <button class="ctrl-btn cam-btn" data-cam="closeup">Close-Up</button>
+            <button class="ctrl-btn cam-btn active" data-cam="upper">Upper Body</button>
+            <button class="ctrl-btn cam-btn" data-cam="full">Full Body</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="dock-row">
+        <div class="control-group">
+          <span class="group-label">Body Gestures & Voice Test</span>
+          <div class="button-row">
+            <button class="ctrl-btn gesture-btn active" data-gesture="idle">Idle Breathing</button>
+            <button class="ctrl-btn gesture-btn" data-gesture="talking">Talking</button>
+            <button class="ctrl-btn gesture-btn" data-gesture="wave">Wave</button>
+            <button class="ctrl-btn gesture-btn" data-gesture="nod">Nod Yes</button>
+            <button class="ctrl-btn gesture-btn" data-gesture="thinking">Thinking</button>
+            <button class="ctrl-btn gesture-btn dance-btn" data-gesture="dance" id="btn-dance">💃 Dance</button>
+            <button class="ctrl-btn accent-btn" id="btn-test-speech">
+              🔊 Test Voice Output
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </body>
+</html>
