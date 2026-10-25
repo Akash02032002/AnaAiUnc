@@ -31,17 +31,20 @@ class CompanionBrain:
             return self._fallback(request)
 
         try:
-            response = self.client.chat.completions.create(
-                model=settings.resolved_model,
-                messages=[
+            kwargs: dict[str, Any] = {
+                "model": settings.resolved_model,
+                "messages": [
                     {"role": "system", "content": build_system_prompt(request)},
                     {"role": "user", "content": build_user_payload(request)},
                 ],
-                temperature=0.95,
-                max_tokens=1200,
-                presence_penalty=0.15,
-                frequency_penalty=0.15,
-            )
+                "temperature": 0.95,
+                "max_tokens": 1200,
+            }
+            if not settings.is_river:
+                kwargs["presence_penalty"] = 0.15
+                kwargs["frequency_penalty"] = 0.15
+
+            response = self.client.chat.completions.create(**kwargs)
             raw_text = response.choices[0].message.content or ""
             raw_text = raw_text.strip()
             data = self._parse_json(raw_text)
