@@ -635,8 +635,8 @@ private fun configureSweetGirlVoice(tts: TextToSpeech) {
         tts.language = Locale.US
     }
 
-    tts.setSpeechRate(0.96f)
-    tts.setPitch(1.02f)
+    tts.setSpeechRate(0.93f)
+    tts.setPitch(1.06f)
 }
 
 private fun String.containsAny(vararg needles: String): Boolean {

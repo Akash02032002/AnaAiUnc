@@ -36,8 +36,8 @@ async def synthesize_sweet_voice(text: str, voice: str = "") -> bytes:
     communicate = edge_tts.Communicate(
         clean_text[:1200],
         voice=selected_voice,
-        rate="-4%",
-        pitch="-2Hz",
+        rate="-7%",
+        pitch="+5Hz",
         volume="+0%",
     )
     audio = BytesIO()
