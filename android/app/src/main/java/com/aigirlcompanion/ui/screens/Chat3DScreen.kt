@@ -69,6 +69,7 @@ import com.aigirlcompanion.data.ChatRepository
 import com.aigirlcompanion.data.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 
 class ModelPathHandler(private val context: Context) : WebViewAssetLoader.PathHandler {
@@ -100,6 +101,9 @@ class Android3DBridge(
     private val onSend: (String) -> Unit,
     private val onModelLoaded: (String, Int) -> Unit,
     private val onTouchMesh: (String) -> Unit,
+    private val onDeleteMessage: (String) -> Unit,
+    private val onPlayVoiceReply: (String, String) -> Unit,
+    private val onStopVoice: () -> Unit,
 ) {
     @JavascriptInterface
     fun sendMessage(text: String) {
@@ -115,6 +119,21 @@ class Android3DBridge(
     fun onMeshTouched(partName: String) {
         onTouchMesh(partName)
     }
+
+    @JavascriptInterface
+    fun deleteMessage(messageId: String) {
+        onDeleteMessage(messageId)
+    }
+
+    @JavascriptInterface
+    fun playVoiceReply(messageId: String, text: String) {
+        onPlayVoiceReply(messageId, text)
+    }
+
+    @JavascriptInterface
+    fun stopVoice() {
+        onStopVoice()
+    }
 }
 
 @Composable
@@ -126,6 +145,7 @@ fun Chat3DScreen(
     lastEmotion: String,
     onSend: (String, (String) -> Unit) -> Unit,
     onSendDocument: (String, ByteArray, String, (String) -> Unit) -> Unit,
+    onDeleteMessage: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -160,7 +180,9 @@ fun Chat3DScreen(
 
     fun executeJs(js: String) {
         webViewInstance?.post {
-            webViewInstance?.evaluateJavascript(js, null)
+            webViewInstance?.evaluateJavascript(js) { res ->
+                Log.d("Ana3D_ExecJs", "JS evaluated [res=$res]")
+            }
         }
     }
 
@@ -229,6 +251,26 @@ fun Chat3DScreen(
                 executeJs(audioJs)
             }
         }
+    }
+
+    // Sync full conversation history to 3D WhatsApp drawer
+    LaunchedEffect(messages, isModelReady) {
+        if (!isModelReady) return@LaunchedEffect
+        try {
+            val jsonArray = JSONArray()
+            messages.forEach { msg ->
+                val obj = JSONObject().apply {
+                    put("id", msg.id)
+                    put("role", msg.role)
+                    put("text", msg.content)
+                    put("content", msg.content)
+                    put("emotion", msg.emotion)
+                    put("timestamp", msg.timestamp)
+                }
+                jsonArray.put(obj)
+            }
+            executeJs("window.Ana3D && window.Ana3D.syncConversation && window.Ana3D.syncConversation($jsonArray);")
+        } catch (_: Exception) {}
     }
 
     // Sync sending state
@@ -305,6 +347,8 @@ fun Chat3DScreen(
                         override fun onPageFinished(view: WebView?, url: String?) {
                             super.onPageFinished(view, url)
                             isModelReady = true
+                            executeJs("window.Ana3D && window.Ana3D.toggleChat && window.Ana3D.toggleChat(false);")
+                            executeJs("window.Ana3D && window.Ana3D.toggleTelemetry && window.Ana3D.toggleTelemetry(false);")
                         }
                     }
 
@@ -318,6 +362,27 @@ fun Chat3DScreen(
                         },
                         onTouchMesh = { part ->
                             triggerHaptic(45)
+                        },
+                        onDeleteMessage = { messageId ->
+                            scope.launch(Dispatchers.Main) {
+                                onDeleteMessage(messageId)
+                            }
+                        },
+                        onPlayVoiceReply = { msgId, text ->
+                            scope.launch(Dispatchers.IO) {
+                                val base64Audio = repository.synthesizeVoiceBase64(profile, text)
+                                if (base64Audio != null) {
+                                    val audioJs = buildString {
+                                        append("window.Ana3D && window.Ana3D.playAudio(")
+                                        append(JSONObject.quote(base64Audio)).append(", ")
+                                        append(JSONObject.quote(text)).append(");")
+                                    }
+                                    executeJs(audioJs)
+                                }
+                            }
+                        },
+                        onStopVoice = {
+                            executeJs("window.Ana3D && window.Ana3D.stopVoice && window.Ana3D.stopVoice();")
                         }
                     )
                     addJavascriptInterface(bridge, "AndroidHost")
@@ -384,8 +449,9 @@ fun Chat3DScreen(
                         ),
                         modifier = Modifier.clickable {
                             triggerHaptic(30)
-                            isChatDrawerOpen = !isChatDrawerOpen
-                            executeJs("window.Ana3D && window.Ana3D.toggleChat && window.Ana3D.toggleChat($isChatDrawerOpen);")
+                            val next = !isChatDrawerOpen
+                            isChatDrawerOpen = next
+                            executeJs("window.Ana3D && window.Ana3D.toggleChat && window.Ana3D.toggleChat($next);")
                         }
                     ) {
                         Row(
@@ -413,8 +479,9 @@ fun Chat3DScreen(
                         ),
                         modifier = Modifier.clickable {
                             triggerHaptic(30)
-                            isTelemetryOpen = !isTelemetryOpen
-                            executeJs("window.Ana3D && window.Ana3D.toggleTelemetry && window.Ana3D.toggleTelemetry($isTelemetryOpen);")
+                            val next = !isTelemetryOpen
+                            isTelemetryOpen = next
+                            executeJs("window.Ana3D && window.Ana3D.toggleTelemetry && window.Ana3D.toggleTelemetry($next);")
                         }
                     ) {
                         Row(

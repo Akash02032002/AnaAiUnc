@@ -216,6 +216,7 @@ fun AiGirlApp() {
                     messages = messages,
                     onSend = ::sendUserMessage,
                     onSendDocument = ::sendDocumentMessage,
+                    onDeleteMessage = ::deleteChatMessage,
                 )
 
                 AppTab.Memory -> MemoryScreen(
