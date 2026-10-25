@@ -22,6 +22,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -136,6 +137,9 @@ fun Chat3DScreen(
     var isModelReady by remember { mutableStateOf(false) }
     var lastHandledMessageId by remember { mutableStateOf<String?>(null) }
     var activeCameraPresetIndex by remember { mutableIntStateOf(1) } // 0: closeup, 1: upper, 2: full
+    var isChatDrawerOpen by remember { mutableStateOf(false) }
+    var isTelemetryOpen by remember { mutableStateOf(false) }
+    var isSubtitleVisible by remember { mutableStateOf(true) }
 
     val cameraPresets = listOf("closeup", "upper", "full")
 
@@ -200,6 +204,7 @@ fun Chat3DScreen(
         if (!isModelReady || latestAssistant == null) return@LaunchedEffect
         if (latestAssistant.id == lastHandledMessageId) return@LaunchedEffect
         lastHandledMessageId = latestAssistant.id
+        isSubtitleVisible = true
 
         val replyText = latestAssistant.content
         val emotion = latestAssistant.emotion.ifBlank { "loving" }
@@ -323,14 +328,14 @@ fun Chat3DScreen(
             }
         )
 
-        // 2. Top Control HUD
+        // 2. Single Unified Top Control HUD
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 10.dp, vertical = 6.dp)
                 .align(Alignment.TopCenter),
-            color = Color(0x99111827),
-            shape = RoundedCornerShape(14.dp),
+            color = Color(0xCC111827),
+            shape = RoundedCornerShape(16.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33FFFFFF))
         ) {
             Row(
@@ -340,42 +345,105 @@ fun Chat3DScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Left: Online Status & Title
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
+                            .size(9.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF10B981))
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Column {
                         Text(
-                            text = "Ana 🌸 3D Stage",
+                            text = "Ana 🌸",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
                         Text(
-                            text = if (sending) "Thinking..." else modelStatus,
-                            color = Color(0xAAFFFFFF),
-                            fontSize = 10.sp
+                            text = if (sending) "Thinking..." else "3D Live",
+                            color = Color(0xBBFFFFFF),
+                            fontSize = 9.sp
                         )
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    // Dance Button
+                // Right: Clean quick action pills
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // 1. Hide / Unhide Left Chat Drawer
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isChatDrawerOpen) Color(0xFF25D366).copy(alpha = 0.25f) else Color(0x22FFFFFF),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isChatDrawerOpen) Color(0xFF25D366) else Color(0x33FFFFFF)
+                        ),
+                        modifier = Modifier.clickable {
+                            triggerHaptic(30)
+                            isChatDrawerOpen = !isChatDrawerOpen
+                            executeJs("window.Ana3D && window.Ana3D.toggleChat && window.Ana3D.toggleChat($isChatDrawerOpen);")
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("💬", fontSize = 11.sp)
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = if (isChatDrawerOpen) "Hide" else "Chat",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    // 2. Hide / Unhide Right Live Expression Panel
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isTelemetryOpen) Color(0xFFEC4899).copy(alpha = 0.25f) else Color(0x22FFFFFF),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isTelemetryOpen) Color(0xFFEC4899) else Color(0x33FFFFFF)
+                        ),
+                        modifier = Modifier.clickable {
+                            triggerHaptic(30)
+                            isTelemetryOpen = !isTelemetryOpen
+                            executeJs("window.Ana3D && window.Ana3D.toggleTelemetry && window.Ana3D.toggleTelemetry($isTelemetryOpen);")
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("📊", fontSize = 11.sp)
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                text = if (isTelemetryOpen) "Hide" else "Face",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    // 3. Dance Button
                     IconButton(
                         onClick = {
                             triggerHaptic(30)
                             executeJs("window.Ana3D && window.Ana3D.toggleDance && window.Ana3D.toggleDance();")
                         },
-                        modifier = Modifier.size(34.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
-                        Text("💃", fontSize = 16.sp)
+                        Text("💃", fontSize = 14.sp)
                     }
 
-                    // Camera Zoom Button
+                    // 4. Camera Zoom Button
                     IconButton(
                         onClick = {
                             triggerHaptic(30)
@@ -383,69 +451,64 @@ fun Chat3DScreen(
                             val preset = cameraPresets[activeCameraPresetIndex]
                             executeJs("window.Ana3D && window.Ana3D.setCameraPreset && window.Ana3D.setCameraPreset('$preset');")
                         },
-                        modifier = Modifier.size(34.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
-                        Text("🎥", fontSize = 16.sp)
+                        Text("🎥", fontSize = 14.sp)
                     }
 
-                    // Relax Arms Button
-                    IconButton(
-                        onClick = {
-                            triggerHaptic(30)
-                            executeJs("window.Ana3D && window.Ana3D.toggleRelaxArms && window.Ana3D.toggleRelaxArms();")
-                        },
-                        modifier = Modifier.size(34.dp)
-                    ) {
-                        Text("💪", fontSize = 16.sp)
-                    }
-
-                    // Flip 180°
+                    // 5. Flip 180°
                     IconButton(
                         onClick = {
                             triggerHaptic(30)
                             executeJs("window.Ana3D && window.Ana3D.flip180 && window.Ana3D.flip180();")
                         },
-                        modifier = Modifier.size(34.dp)
+                        modifier = Modifier.size(30.dp)
                     ) {
-                        Text("🔄", fontSize = 16.sp)
+                        Text("🔄", fontSize = 14.sp)
                     }
                 }
             }
         }
 
-        // 3. Floating Bottom Chat & Voice Input Controls
+        // 3. Floating Bottom Chat & Subtitle Controls
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(horizontal = 10.dp, vertical = 6.dp)
         ) {
-            // Latest Subtitle Bubble
-            if (latestAssistant != null && latestAssistant.content.isNotBlank()) {
+            // Dismissible Spoken Subtitle Card
+            if (latestAssistant != null && latestAssistant.content.isNotBlank() && isSubtitleVisible) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 6.dp),
-                    color = Color(0xD91F2937),
+                    color = Color(0xD0181E2A),
                     shape = RoundedCornerShape(12.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0x33EC4899))
                 ) {
                     Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
                             text = "🌸",
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             modifier = Modifier.padding(end = 6.dp)
                         )
                         Text(
                             text = latestAssistant.content,
                             color = Color.White,
-                            fontSize = 13.sp,
-                            maxLines = 3,
+                            fontSize = 12.sp,
+                            maxLines = 2,
                             modifier = Modifier.weight(1f)
                         )
+                        IconButton(
+                            onClick = { isSubtitleVisible = false },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Text("✕", color = Color(0x88FFFFFF), fontSize = 11.sp)
+                        }
                     }
                 }
             }

@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ana — 3D AI Companion & Stage Controller</title>
-    <script type="module" crossorigin src="./assets/index-BFUdLgUw.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-ChgDFcLO.css">
+    <script type="module" crossorigin src="./assets/index-JBajg1vA.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DO3IJGUD.css">
   </head>
   <body>
     <!-- 3D WebGL Canvas Container -->
@@ -93,13 +93,16 @@
     </section>
 
     <!-- Right Live Blendshape Telemetry Panel -->
-    <aside class="telemetry-panel glass-panel">
-      <h3>Live Blendshapes</h3>
+    <aside id="telemetry-panel" class="telemetry-panel glass-panel">
+      <div class="telemetry-header">
+        <h3>Live Expressions</h3>
+        <button class="wa-icon-btn" id="telemetry-btn-close" title="Close Panel">✕</button>
+      </div>
       <div id="blendshape-bars" class="bars-container"></div>
       <div class="toggle-row">
         <label>
           <input type="checkbox" id="toggle-headtrack" checked />
-          Mouse Gaze (Key: C)
+          Gaze Track (Key: C)
         </label>
         <label>
           <input type="checkbox" id="toggle-autoblink" checked />
