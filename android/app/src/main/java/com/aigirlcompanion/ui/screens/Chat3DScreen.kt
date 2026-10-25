@@ -66,6 +66,7 @@ import com.aigirlcompanion.R
 import com.aigirlcompanion.data.ChatMessage
 import com.aigirlcompanion.data.ChatRepository
 import com.aigirlcompanion.data.UserProfile
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
@@ -203,21 +204,26 @@ fun Chat3DScreen(
         val replyText = latestAssistant.content
         val emotion = latestAssistant.emotion.ifBlank { "loving" }
 
-        // Fetch sweet neural voice in base64
-        val base64Audio = repository.synthesizeVoiceBase64(profile, replyText)
-
-        val js = buildString {
+        // 1. Instantly trigger 3D visual expression, gesture, and procedural speech (< 50ms)
+        val initialJs = buildString {
             append("window.Ana3D && window.Ana3D.receiveReply(")
             append(JSONObject.quote(replyText)).append(", ")
-            append(JSONObject.quote(emotion)).append(", ")
-            if (base64Audio != null) {
-                append(JSONObject.quote(base64Audio))
-            } else {
-                append("null")
-            }
-            append(", null);")
+            append(JSONObject.quote(emotion)).append(", null, null);")
         }
-        executeJs(js)
+        executeJs(initialJs)
+
+        // 2. In parallel, fetch sweet neural voice audio stream without blocking visual reaction
+        scope.launch(Dispatchers.IO) {
+            val base64Audio = repository.synthesizeVoiceBase64(profile, replyText)
+            if (base64Audio != null) {
+                val audioJs = buildString {
+                    append("window.Ana3D && window.Ana3D.playAudio(")
+                    append(JSONObject.quote(base64Audio)).append(", ")
+                    append(JSONObject.quote(replyText)).append(");")
+                }
+                executeJs(audioJs)
+            }
+        }
     }
 
     // Sync sending state
