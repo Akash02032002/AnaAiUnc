@@ -69,6 +69,31 @@ import com.aigirlcompanion.data.UserProfile
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
+class ModelPathHandler(private val context: Context) : WebViewAssetLoader.PathHandler {
+    override fun handle(path: String): WebResourceResponse? {
+        val cleanPath = path.trimStart('/')
+        // 1. Try external files dir: /sdcard/Android/data/com.aigirlcompanion/files/models/...
+        val extFile = java.io.File(context.getExternalFilesDir(null), "models/$cleanPath")
+        if (extFile.exists() && extFile.isFile) {
+            return WebResourceResponse(
+                if (cleanPath.endsWith(".glb")) "model/gltf-binary" else "application/octet-stream",
+                null,
+                extFile.inputStream()
+            )
+        }
+        // 2. Try internal files dir: /data/user/0/com.aigirlcompanion/files/models/...
+        val intFile = java.io.File(context.filesDir, "models/$cleanPath")
+        if (intFile.exists() && intFile.isFile) {
+            return WebResourceResponse(
+                if (cleanPath.endsWith(".glb")) "model/gltf-binary" else "application/octet-stream",
+                null,
+                intFile.inputStream()
+            )
+        }
+        return null
+    }
+}
+
 class Android3DBridge(
     private val onSend: (String) -> Unit,
     private val onModelLoaded: (String, Int) -> Unit,
@@ -234,17 +259,35 @@ fun Chat3DScreen(
                     setLayerType(android.view.View.LAYER_TYPE_HARDWARE, null)
                     setBackgroundColor(0x00000000)
 
-                    val modelsDir = java.io.File(ctx.getExternalFilesDir(null), "models").apply { mkdirs() }
                     val assetLoader = WebViewAssetLoader.Builder()
                         .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(ctx))
-                        .addPathHandler("/models/", WebViewAssetLoader.InternalStoragePathHandler(ctx, modelsDir))
+                        .addPathHandler("/models/", ModelPathHandler(ctx))
                         .build()
+
+                    webChromeClient = object : android.webkit.WebChromeClient() {
+                        override fun onConsoleMessage(consoleMessage: android.webkit.ConsoleMessage?): Boolean {
+                            Log.d("Ana3D_WebConsole", "${consoleMessage?.message()} [${consoleMessage?.sourceId()}:${consoleMessage?.lineNumber()}]")
+                            return true
+                        }
+                    }
 
                     webViewClient = object : WebViewClient() {
                         override fun shouldInterceptRequest(
                             view: WebView,
                             request: WebResourceRequest
                         ): WebResourceResponse? {
+                            val path = request.url.path.orEmpty()
+                            if (path.endsWith(".glb", ignoreCase = true) || path.endsWith(".gltf", ignoreCase = true)) {
+                                val fileName = request.url.lastPathSegment ?: "companion.glb"
+                                val extFile = java.io.File(ctx.getExternalFilesDir(null), "models/$fileName")
+                                if (extFile.exists() && extFile.isFile) {
+                                    return WebResourceResponse("model/gltf-binary", null, extFile.inputStream())
+                                }
+                                val intFile = java.io.File(ctx.filesDir, "models/$fileName")
+                                if (intFile.exists() && intFile.isFile) {
+                                    return WebResourceResponse("model/gltf-binary", null, intFile.inputStream())
+                                }
+                            }
                             return assetLoader.shouldInterceptRequest(request.url)
                         }
 
