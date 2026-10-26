@@ -155,11 +155,14 @@ fun Chat3DScreen(
     var input by remember { mutableStateOf("") }
     var modelStatus by remember { mutableStateOf("Initializing 3D Stage...") }
     var isModelReady by remember { mutableStateOf(false) }
-    var lastHandledMessageId by remember { mutableStateOf<String?>(null) }
+    var hasUserInputStarted by remember { mutableStateOf(false) }
+    var lastHandledMessageId by remember {
+        mutableStateOf<String?>(messages.lastOrNull { it.role == "assistant" }?.id)
+    }
     var activeCameraPresetIndex by remember { mutableIntStateOf(1) } // 0: closeup, 1: upper, 2: full
     var isChatDrawerOpen by remember { mutableStateOf(false) }
     var isTelemetryOpen by remember { mutableStateOf(false) }
-    var isSubtitleVisible by remember { mutableStateOf(true) }
+    var isSubtitleVisible by remember { mutableStateOf(false) }
 
     val cameraPresets = listOf("closeup", "upper", "full")
 
@@ -193,6 +196,7 @@ fun Chat3DScreen(
             val spoken = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull().orEmpty()
             if (spoken.isNotBlank()) {
                 input = spoken
+                hasUserInputStarted = true
                 onSend(spoken) {}
             }
         }
@@ -215,6 +219,7 @@ fun Chat3DScreen(
 
             if (bytes != null && bytes.isNotEmpty()) {
                 val resolvedName = fileName
+                hasUserInputStarted = true
                 onSendDocument(resolvedName, bytes, "") {}
             }
         }
@@ -224,6 +229,15 @@ fun Chat3DScreen(
     val latestAssistant = messages.lastOrNull { it.role == "assistant" }
     LaunchedEffect(latestAssistant?.id, isModelReady) {
         if (!isModelReady || latestAssistant == null) return@LaunchedEffect
+
+        // Block automatic audio output and reactions for previous replies when opening the app:
+        // Ana must remain completely silent and idle until the user actually sends new input.
+        if (!hasUserInputStarted) {
+            lastHandledMessageId = latestAssistant.id
+            isSubtitleVisible = false
+            return@LaunchedEffect
+        }
+
         if (latestAssistant.id == lastHandledMessageId) return@LaunchedEffect
         lastHandledMessageId = latestAssistant.id
         isSubtitleVisible = true
@@ -354,6 +368,7 @@ fun Chat3DScreen(
 
                     val bridge = Android3DBridge(
                         onSend = { text ->
+                            hasUserInputStarted = true
                             scope.launch { onSend(text) {} }
                         },
                         onModelLoaded = { label, morphCount ->
@@ -369,6 +384,7 @@ fun Chat3DScreen(
                             }
                         },
                         onPlayVoiceReply = { msgId, text ->
+                            isSubtitleVisible = true
                             scope.launch(Dispatchers.IO) {
                                 val base64Audio = repository.synthesizeVoiceBase64(profile, text)
                                 if (base64Audio != null) {
@@ -647,6 +663,7 @@ fun Chat3DScreen(
                         onClick = {
                             val trimmed = input.trim()
                             if (trimmed.isNotBlank()) {
+                                hasUserInputStarted = true
                                 onSend(trimmed) {}
                                 input = ""
                             }
