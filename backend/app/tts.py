@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 import unicodedata
 
@@ -8,8 +9,13 @@ DEFAULT_VOICE = "hi-IN-SwaraNeural"
 
 
 def clean_text_for_speech(text: str) -> str:
+    # 1. Strip roleplay actions inside asterisks or underscores like *leans into your palm* or _sighs_
+    stripped = re.sub(r"\*[^*]+\*", " ", text)
+    stripped = re.sub(r"_[^_]+_", " ", stripped)
+    source = stripped if stripped.strip() else text
+
     result = []
-    for ch in text:
+    for ch in source:
         cat = unicodedata.category(ch)
         code = ord(ch)
         if cat in ("So", "Cs", "Sk") or 0x1F000 <= code <= 0x1FFFF or 0xFE00 <= code <= 0xFE0F or code in (0x200D, 0x20E3):
