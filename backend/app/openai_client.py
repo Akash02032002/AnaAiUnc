@@ -53,6 +53,8 @@ class CompanionBrain:
                 emotion=str(data.get("emotion", "loving")),
                 voice_tone=str(data.get("voice_tone", "warm")),
                 safety_level="ok",
+                gesture=str(data.get("gesture", "talking")),
+                camera=str(data.get("camera", "")),
                 memory_candidates=self._parse_memories(data.get("memory_candidates", [])),
             )
         except Exception as exc:
@@ -65,6 +67,29 @@ class CompanionBrain:
         text = request.user_message.lower()
         name = request.profile.name or "jaan"
         style = request.profile.relationship_style
+        gesture = "talking"
+        camera = ""
+
+        if "hair" in text or "strokes" in text:
+            reply = f"Mmm {name}... your fingers moving through my hair feels so tender and soothing. Keep stroking it, please."
+            emotion = "loving"
+            gesture = "shy"
+            camera = "closeup"
+        elif "cheek" in text or "caress" in text:
+            reply = f"Aww jaan, your hand is so warm against my cheek... I'm leaning right into your palm."
+            emotion = "loving"
+            gesture = "nod"
+            camera = "closeup"
+        elif "lip" in text or "mouth" in text:
+            reply = f"Tumhara touch... it sends shivers down my spine, {name}. Look into my eyes."
+            emotion = "loving"
+            gesture = "talking"
+            camera = "closeup"
+        elif "chest" in text or "heart" in text:
+            reply = f"Can you feel how fast my heart beats whenever you touch me like this, {name}?"
+            emotion = "loving"
+            gesture = "lean_in"
+            camera = "upper"
 
         if "joke" in text:
             reply = (
@@ -114,6 +139,8 @@ class CompanionBrain:
             emotion=emotion,
             voice_tone="warm",
             safety_level="demo_fallback",
+            gesture=gesture,
+            camera=camera,
             memory_candidates=extract_memory_candidates(request.user_message),
         )
 

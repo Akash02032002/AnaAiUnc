@@ -52,6 +52,8 @@ data class ChatMessage(
     val content: String,
     val emotion: String = "calm",
     val timestamp: Long = System.currentTimeMillis(),
+    val gesture: String = "talking",
+    val camera: String = "",
 )
 
 data class MemoryItem(
@@ -75,6 +77,8 @@ data class AnaReply(
     val safetyLevel: String = "ok",
     val freezeSeconds: Int = 0,
     val memoryCandidates: List<MemoryCandidate> = emptyList(),
+    val gesture: String = "talking",
+    val camera: String = "",
 )
 
 fun cleanTextForSpeech(text: String): String {

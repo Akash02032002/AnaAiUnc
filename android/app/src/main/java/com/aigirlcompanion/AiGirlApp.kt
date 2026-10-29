@@ -89,6 +89,8 @@ fun AiGirlApp() {
             role = "assistant",
             content = reply.reply,
             emotion = reply.emotion,
+            gesture = reply.gesture,
+            camera = reply.camera,
         )
         messages = updated
         store.saveMessages(updated)

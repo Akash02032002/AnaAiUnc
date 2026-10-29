@@ -48,6 +48,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -99,12 +100,15 @@ class ModelPathHandler(private val context: Context) : WebViewAssetLoader.PathHa
 
 class Android3DBridge(
     private val onSend: (String) -> Unit,
-    private val onModelLoaded: (String, Int) -> Unit,
+    onModelLoaded: (String, Int) -> Unit,
     private val onTouchMesh: (String) -> Unit,
     private val onDeleteMessage: (String) -> Unit,
     private val onPlayVoiceReply: (String, String) -> Unit,
     private val onStopVoice: () -> Unit,
+    private val onDrawerToggled: (String, Boolean) -> Unit = { _, _ -> },
 ) {
+    private val modelLoadedListener: (String, Int) -> Unit = onModelLoaded
+
     @JavascriptInterface
     fun sendMessage(text: String) {
         onSend(text)
@@ -112,7 +116,7 @@ class Android3DBridge(
 
     @JavascriptInterface
     fun onModelLoaded(label: String, morphCount: Int) {
-        onModelLoaded(label, morphCount)
+        modelLoadedListener(label, morphCount)
     }
 
     @JavascriptInterface
@@ -133,6 +137,11 @@ class Android3DBridge(
     @JavascriptInterface
     fun stopVoice() {
         onStopVoice()
+    }
+
+    @JavascriptInterface
+    fun onDrawerStateChanged(drawer: String, isOpen: Boolean) {
+        onDrawerToggled(drawer, isOpen)
     }
 }
 
@@ -163,6 +172,7 @@ fun Chat3DScreen(
     var isChatDrawerOpen by remember { mutableStateOf(false) }
     var isTelemetryOpen by remember { mutableStateOf(false) }
     var isSubtitleVisible by remember { mutableStateOf(false) }
+    var lastTouchTimestamp by remember { mutableLongStateOf(0L) }
 
     val cameraPresets = listOf("closeup", "upper", "full")
 
@@ -244,12 +254,19 @@ fun Chat3DScreen(
 
         val replyText = latestAssistant.content
         val emotion = latestAssistant.emotion.ifBlank { "loving" }
+        val gesture = latestAssistant.gesture.ifBlank { "talking" }
+        val camera = latestAssistant.camera
 
         // 1. Instantly trigger 3D visual expression, gesture, and procedural speech (< 50ms)
         val initialJs = buildString {
             append("window.Ana3D && window.Ana3D.receiveReply(")
             append(JSONObject.quote(replyText)).append(", ")
-            append(JSONObject.quote(emotion)).append(", null, null);")
+            append(JSONObject.quote(emotion)).append(", null, ")
+            append(JSONObject.quote(gesture)).append(");")
+            if (camera.isNotBlank()) {
+                append(" window.Ana3D && window.Ana3D.setCameraPreset && window.Ana3D.setCameraPreset(")
+                append(JSONObject.quote(camera)).append(");")
+            }
         }
         executeJs(initialJs)
 
@@ -376,7 +393,20 @@ fun Chat3DScreen(
                             isModelReady = true
                         },
                         onTouchMesh = { part ->
-                            triggerHaptic(45)
+                            triggerHaptic(50)
+                            val now = System.currentTimeMillis()
+                            if (!sending && now - lastTouchTimestamp > 3500L) {
+                                lastTouchTimestamp = now
+                                val touchAction = when {
+                                    part.contains("hair", ignoreCase = true) -> "*strokes your silky golden blonde hair*"
+                                    part.contains("cheek", ignoreCase = true) || part.contains("face", ignoreCase = true) -> "*gently caresses your cheek*"
+                                    part.contains("lip", ignoreCase = true) || part.contains("mouth", ignoreCase = true) -> "*gently touches your soft lips*"
+                                    part.contains("chest", ignoreCase = true) || part.contains("heart", ignoreCase = true) -> "*places a warm hand gently over your heart*"
+                                    part.contains("hand", ignoreCase = true) || part.contains("arm", ignoreCase = true) -> "*holds your hand tenderly*"
+                                    else -> "*softly touches you*"
+                                }
+                                onSend(touchAction) {}
+                            }
                         },
                         onDeleteMessage = { messageId ->
                             scope.launch(Dispatchers.Main) {
@@ -399,6 +429,12 @@ fun Chat3DScreen(
                         },
                         onStopVoice = {
                             executeJs("window.Ana3D && window.Ana3D.stopVoice && window.Ana3D.stopVoice();")
+                        },
+                        onDrawerToggled = { drawer, isOpen ->
+                            scope.launch(Dispatchers.Main) {
+                                if (drawer == "chat") isChatDrawerOpen = isOpen
+                                else if (drawer == "telemetry") isTelemetryOpen = isOpen
+                            }
                         }
                     )
                     addJavascriptInterface(bridge, "AndroidHost")
@@ -524,6 +560,17 @@ fun Chat3DScreen(
                         modifier = Modifier.size(30.dp)
                     ) {
                         Text("💃", fontSize = 14.sp)
+                    }
+
+                    // 3b. Floor Sitting / Kneeling Toggle Button
+                    IconButton(
+                        onClick = {
+                            triggerHaptic(30)
+                            executeJs("window.Ana3D && window.Ana3D.toggleSit && window.Ana3D.toggleSit();")
+                        },
+                        modifier = Modifier.size(30.dp)
+                    ) {
+                        Text("🧘‍♀️", fontSize = 14.sp)
                     }
 
                     // 4. Camera Zoom Button

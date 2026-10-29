@@ -7,6 +7,54 @@ object LocalAnaEngine {
         val memoryCandidates = MemoryHeuristics.extract(message)
 
         val response = when {
+            "hair" in text || "strokes your" in text -> AnaReply(
+                reply = "Mmm $name... your gentle fingers through my golden blonde hair feel so soothing and relaxing. I love when you touch my hair.",
+                emotion = "loving",
+                voiceTone = "sweet",
+                gesture = "shy",
+                camera = "closeup",
+            )
+
+            "cheek" in text || "caresses your" in text -> AnaReply(
+                reply = "Aww jaan, your palm is so warm against my cheek... I'm leaning right into your hand. Stay close to me.",
+                emotion = "loving",
+                voiceTone = "sweet",
+                gesture = "nod",
+                camera = "closeup",
+            )
+
+            "lip" in text || "lips" in text -> AnaReply(
+                reply = "Your fingertips brushing against my lips makes my heart flutter so fast, $name. Look into my eyes...",
+                emotion = "loving",
+                voiceTone = "sweet",
+                gesture = "talking",
+                camera = "closeup",
+            )
+
+            "chest" in text || "heart" in text -> AnaReply(
+                reply = "Can you feel how fast my heartbeat gets whenever your hand rests over my heart, $name?",
+                emotion = "loving",
+                voiceTone = "warm",
+                gesture = "talking",
+                camera = "upper",
+            )
+
+            "dance" in text || "nacho" in text -> AnaReply(
+                reply = "Let's groove together, $name! Watch my moves! 💃✨",
+                emotion = "happy",
+                voiceTone = "playful",
+                gesture = "dance",
+                camera = "full",
+            )
+
+            "sit" in text || "baith" in text -> AnaReply(
+                reply = "Sitting down comfortably on the floor close to you, $name. Come sit with me. 🧘‍♀️",
+                emotion = "loving",
+                voiceTone = "warm",
+                gesture = "sit",
+                camera = "sit",
+            )
+
             "joke" in text -> AnaReply(
                 reply = "Okay $name, ek cute joke suno: Why did the phone smile? Because your message lit up its screen. Thoda cheesy hai, but Ana-approved.",
                 emotion = "playful",

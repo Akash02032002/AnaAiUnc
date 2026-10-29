@@ -40,4 +40,6 @@ class ChatResponse(BaseModel):
     voice_tone: str = "warm"
     safety_level: str = "ok"
     freeze_seconds: int = 0
+    gesture: str = "talking"
+    camera: str = ""
     memory_candidates: list[MemoryCandidate] = Field(default_factory=list)

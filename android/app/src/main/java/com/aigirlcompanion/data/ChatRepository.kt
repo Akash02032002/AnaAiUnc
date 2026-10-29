@@ -166,6 +166,8 @@ class ChatRepository {
             safetyLevel = json.optString("safety_level", "ok"),
             freezeSeconds = json.optInt("freeze_seconds", 0),
             memoryCandidates = parseMemoryCandidates(json.optJSONArray("memory_candidates")),
+            gesture = json.optString("gesture", "talking"),
+            camera = json.optString("camera", ""),
         )
     }
 
